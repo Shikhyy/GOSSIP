@@ -10,19 +10,26 @@ pub mod gossip {
     pub fn create_market(
         ctx: Context<CreateMarket>,
         title: String,
+        category: String,
         initial_mu: f64,
         initial_sigma: f64,
-        b: f64, // Liquidity parameter for LMSR
+        b: f64,
+        resolution_source: String,
+        ends_at: i64,
     ) -> Result<()> {
         let market = &mut ctx.accounts.market;
         market.authority = ctx.accounts.authority.key();
+        market.creator = ctx.accounts.authority.key();
         market.title = title;
+        market.category = category;
         market.mu = initial_mu;
         market.sigma = initial_sigma;
         market.b = b;
         market.total_liquidity = 0;
         market.resolved = false;
         market.final_outcome = 0.0;
+        market.resolution_source = resolution_source;
+        market.ends_at = ends_at;
 
         msg!("Market Created: {} with mu: {}, sigma: {}", market.title, market.mu, market.sigma);
         Ok(())
@@ -37,20 +44,12 @@ pub mod gossip {
         let market = &mut ctx.accounts.market;
         let prediction = &mut ctx.accounts.prediction;
 
-        // --- YIELD INTEGRATION (REFLECT SPONSOR) ---
-        // 1. Transfer CASH from user to the Market Vault.
-        // 2. Call Reflect's CPI to wrap the CASH into yield-bearing rCASH.
-        // This ensures the locked liquidity generates interest while the market is open.
         msg!("Simulating Reflect CPI: Wrapping {} CASH into rCASH for yield generation.", amount);
         
-        // Tilt logic: The prediction moves the mean.
-        // The weight of the tilt is proportional to the amount and inversely proportional to market liquidity b.
         let weight = (amount as f64) / (market.b + 1.0);
         let old_mu = market.mu;
         
-        // Influence factor decreases as sigma decreases (higher certainty)
         market.mu = old_mu + weight * (point - old_mu) / (market.sigma.powi(2) + 0.1);
-        
         market.total_liquidity += amount;
 
         prediction.owner = ctx.accounts.user.key();
@@ -59,6 +58,9 @@ pub mod gossip {
         prediction.amount = amount;
         prediction.initial_mu = old_mu;
         prediction.initial_sigma = market.sigma;
+        prediction.created_at = Clock::get()?.unix_timestamp;
+        prediction.settled = false;
+        prediction.payout = 0;
 
         msg!("Prediction placed at {} with amount {}. New mu: {}", point, amount, market.mu);
         Ok(())
@@ -115,12 +117,12 @@ pub mod gossip {
 }
 
 #[derive(Accounts)]
-#[instruction(title: String)]
+#[instruction(title: String, category: String, resolution_source: String)]
 pub struct CreateMarket<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + (4 + title.len()) + 8 + 8 + 8 + 8 + 1 + 8,
+        space = 8 + 32 + 32 + (4 + title.len()) + (4 + category.len()) + 8 + 8 + 8 + 8 + 1 + 8 + (4 + resolution_source.len()) + 8,
         seeds = [b"market", title.as_bytes()],
         bump
     )]
