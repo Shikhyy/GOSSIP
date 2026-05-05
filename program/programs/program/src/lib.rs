@@ -123,23 +123,30 @@ pub struct ResolveMarket<'info> {
 #[account]
 pub struct Market {
     pub authority: Pubkey,
+    pub creator: Pubkey,
     pub title: String,
-    pub mu: f64,             // Mean of the Gaussian distribution
-    pub sigma: f64,          // Standard deviation
-    pub b: f64,              // Liquidity parameter (LMSR)
+    pub category: String,
+    pub mu: f64,
+    pub sigma: f64,
+    pub b: f64,
     pub total_liquidity: u64,
     pub resolved: bool,
     pub final_outcome: f64,
+    pub resolution_source: String,
+    pub ends_at: i64,
 }
 
 #[account]
 pub struct Prediction {
     pub owner: Pubkey,
     pub market: Pubkey,
-    pub point: f64,          // The point the user predicted
-    pub amount: u64,         // Amount bet
-    pub initial_mu: f64,     // Market mu at the time of bet
-    pub initial_sigma: f64,  // Market sigma at the time of bet
+    pub point: f64,
+    pub amount: u64,
+    pub initial_mu: f64,
+    pub initial_sigma: f64,
+    pub created_at: i64,
+    pub settled: bool,
+    pub payout: u64,
 }
 
 #[error_code]
