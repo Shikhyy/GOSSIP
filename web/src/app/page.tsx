@@ -9,7 +9,7 @@ import { TrendingUp, Activity, Users, ShieldCheck } from 'lucide-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3, Idl } from '@coral-xyz/anchor';
+import { Program, AnchorProvider, web3, Idl, BN } from '@coral-xyz/anchor';
 import { Gossip } from '@/idl/gossip';
 import IDL from '@/idl/gossip.json';
 
@@ -83,7 +83,7 @@ export default function Home() {
 
       // Sending a real bet transaction
       await program.methods
-        .placePrediction(val, new typeof import('@coral-xyz/anchor').BN(10))
+        .placePrediction(val, new BN(10))
         .accounts({
           market: marketPda,
           prediction: predictionPda,
