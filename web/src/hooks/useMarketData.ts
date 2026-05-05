@@ -51,7 +51,7 @@ export function useMarketData(marketTitle: string) {
       {} as any,
       { commitment: "confirmed" }
     );
-    return new Program(idlJson as Idl, PROGRAM_ID, provider);
+    return new Program(idlJson as Idl, provider) as any;
   }, [connection]);
 
   const fetchMarket = async () => {
