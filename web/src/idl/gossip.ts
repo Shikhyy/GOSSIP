@@ -1,0 +1,301 @@
+/**
+ * Program IDL in camelCase format in order to be used in JS/TS.
+ *
+ * Note that this is only a type helper and is not the actual IDL. The original
+ * IDL can be found at `target/idl/gossip.json`.
+ */
+export type Gossip = {
+  "address": "9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi",
+  "metadata": {
+    "name": "gossip",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "createMarket",
+      "docs": [
+        "Initialize a new continuous prediction market."
+      ],
+      "discriminator": [
+        103,
+        226,
+        97,
+        235,
+        200,
+        188,
+        251,
+        254
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  109,
+                  97,
+                  114,
+                  107,
+                  101,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "title"
+              }
+            ]
+          }
+        },
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "initialMu",
+          "type": "f64"
+        },
+        {
+          "name": "initialSigma",
+          "type": "f64"
+        },
+        {
+          "name": "b",
+          "type": "f64"
+        }
+      ]
+    },
+    {
+      "name": "placePrediction",
+      "docs": [
+        "Place a prediction on a specific point."
+      ],
+      "discriminator": [
+        79,
+        46,
+        195,
+        197,
+        50,
+        91,
+        88,
+        229
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "prediction",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  114,
+                  101,
+                  100,
+                  105,
+                  99,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market"
+              },
+              {
+                "kind": "account",
+                "path": "user"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "point",
+          "type": "f64"
+        },
+        {
+          "name": "amount",
+          "type": "u64"
+        }
+      ]
+    },
+    {
+      "name": "resolveMarket",
+      "docs": [
+        "Resolve the market with a final outcome."
+      ],
+      "discriminator": [
+        155,
+        23,
+        80,
+        173,
+        46,
+        74,
+        23,
+        239
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "finalOutcome",
+          "type": "f64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "market",
+      "discriminator": [
+        219,
+        190,
+        213,
+        55,
+        0,
+        227,
+        198,
+        154
+      ]
+    },
+    {
+      "name": "prediction",
+      "discriminator": [
+        98,
+        127,
+        141,
+        187,
+        218,
+        33,
+        8,
+        14
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "alreadyResolved",
+      "msg": "Market is already resolved"
+    }
+  ],
+  "types": [
+    {
+      "name": "market",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "mu",
+            "type": "f64"
+          },
+          {
+            "name": "sigma",
+            "type": "f64"
+          },
+          {
+            "name": "b",
+            "type": "f64"
+          },
+          {
+            "name": "totalLiquidity",
+            "type": "u64"
+          },
+          {
+            "name": "resolved",
+            "type": "bool"
+          },
+          {
+            "name": "finalOutcome",
+            "type": "f64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "prediction",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "point",
+            "type": "f64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "initialMu",
+            "type": "f64"
+          },
+          {
+            "name": "initialSigma",
+            "type": "f64"
+          }
+        ]
+      }
+    }
+  ]
+};
