@@ -27,3 +27,6 @@ test-ledger/
 mcp/venv/
 mcp/__pycache__/
 cli/bin/
+
+# Worktrees
+.worktrees/
