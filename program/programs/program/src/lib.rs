@@ -99,6 +99,19 @@ pub mod gossip {
         msg!("Settled position with payout: {}", payout);
         Ok(())
     }
+
+    /// Update market parameters (oracle only)
+    pub fn update_market(ctx: Context<UpdateMarket>, new_mu: f64, new_sigma: f64) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+
+        require!(new_sigma > 0.0, GossipError::InvalidParams);
+
+        market.mu = new_mu;
+        market.sigma = new_sigma;
+
+        msg!("Updated market: mu={}, sigma={}", new_mu, new_sigma);
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -148,6 +161,13 @@ pub struct SettlePosition<'info> {
     #[account(mut, has_one = owner)]
     pub prediction: Account<'info, Prediction>,
     pub owner: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct UpdateMarket<'info> {
+    #[account(mut, has_one = authority)]
+    pub market: Account<'info, Market>,
+    pub authority: Signer<'info>,
 }
 
 #[account]
