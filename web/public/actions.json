@@ -1,0 +1,8 @@
+{
+  "rules": [
+    {
+      "pathPattern": "/api/actions/gossip",
+      "apiPath": "/api/actions/gossip"
+    }
+  ]
+}
