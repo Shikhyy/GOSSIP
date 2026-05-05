@@ -1,0 +1,29 @@
+# Dependency directories
+node_modules/
+target/
+dist/
+build/
+.next/
+out/
+
+# Environment variables
+.env*
+!.env.example
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Anchor/Rust specific
+.anchor/
+test-ledger/
+**/*.rs.bk
+
+# IDEs
+.vscode/
+.idea/
+
+# MCP/CLI specific
+mcp/venv/
+mcp/__pycache__/
+cli/bin/
