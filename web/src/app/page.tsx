@@ -1,26 +1,104 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import BellCurve from '@/components/BellCurve';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, Activity, Users, ShieldCheck } from 'lucide-react';
-
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 
+import { useConnection, useWallet } from '@solana/wallet-adapter-react';
+import { Program, AnchorProvider, web3, Idl } from '@coral-xyz/anchor';
+import { Gossip } from '@/idl/gossip';
+import IDL from '@/idl/gossip.json';
+
+const PROGRAM_ID = new web3.PublicKey("9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi");
+const MARKET_TITLE = "Will SOL hit 250 by Friday?";
+
 export default function Home() {
+  const { connection } = useConnection();
+  const wallet = useWallet();
+  
   const [mu, setMu] = useState(150);
   const [sigma, setSigma] = useState(25);
+  const [liquidity, setLiquidity] = useState(42069);
   const [prediction, setPrediction] = useState<number | undefined>(undefined);
   const [betValue, setBetValue] = useState("180");
 
-  const handleBet = () => {
+  const program = useMemo(() => {
+    if (!connection) return null;
+    const provider = new AnchorProvider(
+      connection, 
+      wallet as any || { publicKey: web3.PublicKey.default, signTransaction: async () => {}, signAllTransactions: async () => {} }, 
+      { commitment: 'confirmed' }
+    );
+    return new Program(IDL as Idl, provider) as unknown as Program<Gossip>;
+  }, [connection, wallet]);
+
+  useEffect(() => {
+    const fetchMarket = async () => {
+      if (!program) return;
+      try {
+        const [marketPda] = web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
+          program.programId
+        );
+        const marketAccount = await program.account.market.fetch(marketPda);
+        setMu(marketAccount.mu);
+        setSigma(marketAccount.sigma);
+        setLiquidity(marketAccount.totalLiquidity.toNumber());
+      } catch (err) {
+        console.log("Market not found or error fetching. Using defaults.", err);
+      }
+    };
+    fetchMarket();
+    
+    // Set up an interval to poll for updates (simulating live agent bets)
+    const interval = setInterval(fetchMarket, 5000);
+    return () => clearInterval(interval);
+  }, [program]);
+
+  const handleBet = async () => {
     const val = parseFloat(betValue);
-    if (!isNaN(val)) {
-      setPrediction(val);
-      // Simulate AMM tilt
+    if (isNaN(val)) return;
+    
+    setPrediction(val);
+    
+    if (!wallet.publicKey || !program) {
+      // Simulate AMM tilt locally if not connected
       setMu(prev => prev + (val - prev) * 0.1);
+      return;
+    }
+
+    try {
+      const [marketPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
+        program.programId
+      );
+      const [predictionPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("prediction"), marketPda.toBuffer(), wallet.publicKey.toBuffer()],
+        program.programId
+      );
+
+      // Sending a real bet transaction
+      await program.methods
+        .placePrediction(val, new typeof import('@coral-xyz/anchor').BN(10))
+        .accounts({
+          market: marketPda,
+          prediction: predictionPda,
+          user: wallet.publicKey,
+          systemProgram: web3.SystemProgram.programId,
+        })
+        .rpc();
+        
+      console.log("Prediction placed successfully!");
+      // Re-fetch state
+      const updatedMarket = await program.account.market.fetch(marketPda);
+      setMu(updatedMarket.mu);
+      setLiquidity(updatedMarket.totalLiquidity.toNumber());
+    } catch (err) {
+      console.error("Error placing prediction:", err);
     }
   };
 
