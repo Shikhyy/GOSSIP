@@ -153,4 +153,12 @@ pub struct Prediction {
 pub enum GossipError {
     #[msg("Market is already resolved")]
     AlreadyResolved,
+    #[msg("Market has not been resolved yet")]
+    NotResolved,
+    #[msg("Position already settled")]
+    AlreadySettled,
+    #[msg("Prediction not found")]
+    PredictionNotFound,
+    #[msg("Invalid market parameters")]
+    InvalidParams,
 }
