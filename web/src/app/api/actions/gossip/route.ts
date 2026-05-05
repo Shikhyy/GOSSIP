@@ -1,5 +1,6 @@
 import {
   ActionPostResponse,
+  createPostResponse,
   ActionGetResponse,
   ActionPostRequest,
   createActionHeaders,
@@ -124,11 +125,13 @@ export const POST = async (req: Request) => {
       recentBlockhash: blockhash,
     }).add(ix);
 
-    const payload: ActionPostResponse = {
-      type: "transaction",
-      transaction: transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
-      message: `Successfully locked ${amount} CASH for predicting $${point}`,
-    };
+    const payload: ActionPostResponse = await createPostResponse({
+      fields: {
+        type: "transaction",
+        transaction,
+        message: `Successfully locked ${amount} CASH for predicting $${point}`,
+      },
+    });
 
     return Response.json(payload, { headers });
   } catch (err) {

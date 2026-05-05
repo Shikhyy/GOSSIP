@@ -1,355 +1,294 @@
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import BellCurve from '@/components/BellCurve';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, Activity, Users, ShieldCheck, Sparkles, ArrowRight, BrainCircuit } from 'lucide-react';
-import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
+import { motion } from "framer-motion";
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { ArrowRight, TrendingUp, Activity, Cpu, Zap, BarChart3, Target, Shield } from "lucide-react";
 
-import { useConnection, useWallet } from '@solana/wallet-adapter-react';
-import { Program, AnchorProvider, web3, Idl, BN } from '@coral-xyz/anchor';
-import { Gossip } from '@/idl/gossip';
-import IDL from '@/idl/gossip.json';
+const stats = [
+  { label: "Total Volume", value: "$2.4M" },
+  { label: "Active Markets", value: "18" },
+  { label: "AI Agents", value: "47" },
+  { label: "Avg Yield", value: "12.4%" },
+];
 
-const PROGRAM_ID = new web3.PublicKey("9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi");
-const MARKET_TITLE = "Will SOL hit 250 by Friday?";
+const features = [
+  {
+    num: "01",
+    title: "Continuous Markets",
+    description: "Bet on exact values, not just yes/no. Gaussian AMM enables infinite-resolution predictions with mathematically fair pricing.",
+  },
+  {
+    num: "02",
+    title: "Infinite Upside",
+    description: "Predict black swan events and earn 1000x payouts. The further from consensus, the higher your reward when you're right.",
+  },
+  {
+    num: "03",
+    title: "AI Agent Economy",
+    description: "Deploy autonomous ML agents via MCP. Let LSTM models arbitrage markets 24/7 while you sleep.",
+  },
+  {
+    num: "04",
+    title: "Yield-Native Pools",
+    description: "Capital never sits idle. All locked liquidity earns yield via Reflect's interest-bearing primitives until resolution.",
+  },
+];
 
-// Animation Variants
-const staggerContainer = {
+const containerVariants = {
   hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
+  visible: { opacity: 1, transition: { staggerChildren: 0.12, delayChildren: 0.2 } },
 };
 
-const slideUp = {
-  hidden: { opacity: 0, y: 30 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] as const } }
+const itemVariants = {
+  hidden: { y: 30, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: "spring" as const, stiffness: 100, damping: 20 } },
 };
 
-const fadeIn = {
-  hidden: { opacity: 0 },
-  show: { opacity: 1, transition: { duration: 0.8 } }
-};
-
-export default function Home() {
-  const { connection } = useConnection();
-  const wallet = useWallet();
+function CountUp({ value, suffix = '', prefix = '' }: { value: string; suffix?: string; prefix?: string }) {
+  const [display, setDisplay] = useState(prefix + "0" + suffix);
   
-  const [mu, setMu] = useState(150);
-  const [sigma, setSigma] = useState(25);
-  const [liquidity, setLiquidity] = useState(42069);
-  const [prediction, setPrediction] = useState<number | undefined>(undefined);
-  const [betValue, setBetValue] = useState("180");
-  const [isBetting, setIsBetting] = useState(false);
-
-  const program = useMemo(() => {
-    if (!connection) return null;
-    const provider = new AnchorProvider(
-      connection, 
-      wallet as any || { publicKey: web3.PublicKey.default, signTransaction: async () => {}, signAllTransactions: async () => {} }, 
-      { commitment: 'confirmed' }
-    );
-    return new Program(IDL as Idl, provider) as unknown as Program<Gossip>;
-  }, [connection, wallet]);
-
   useEffect(() => {
-    const fetchMarket = async () => {
-      if (!program) return;
-      try {
-        const [marketPda] = web3.PublicKey.findProgramAddressSync(
-          [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
-          program.programId
-        );
-        const marketAccount = await program.account.market.fetch(marketPda);
-        setMu(marketAccount.mu);
-        setSigma(marketAccount.sigma);
-        setLiquidity(marketAccount.totalLiquidity.toNumber());
-      } catch (err) {
-        console.log("Market not found or error fetching. Using defaults.", err);
-      }
-    };
-    fetchMarket();
-    
-    const interval = setInterval(fetchMarket, 5000);
-    return () => clearInterval(interval);
-  }, [program]);
-
-  const handleBet = async () => {
-    const val = parseFloat(betValue);
-    if (isNaN(val)) return;
-    
-    setIsBetting(true);
-    setPrediction(val);
-    
-    if (!wallet.publicKey || !program) {
-      setTimeout(() => {
-        setMu(prev => prev + (val - prev) * 0.1);
-        setIsBetting(false);
-      }, 1000);
+    const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+    if (isNaN(num)) {
+      setDisplay(value);
       return;
     }
+    let start = 0;
+    const duration = 1500;
+    const step = num / (duration / 16);
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= num) {
+        setDisplay(value);
+        clearInterval(timer);
+      } else {
+        setDisplay(prefix + start.toFixed(1) + suffix);
+      }
+    }, 16);
+    return () => clearInterval(timer);
+  }, [value, prefix, suffix]);
+  
+  return <>{display}</>;
+}
 
-    try {
-      const [marketPda] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
-        program.programId
-      );
-      const [predictionPda] = web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("prediction"), marketPda.toBuffer(), wallet.publicKey.toBuffer()],
-        program.programId
-      );
-
-      await program.methods
-        .placePrediction(val, new BN(10))
-        .accounts({
-          market: marketPda,
-          prediction: predictionPda,
-          user: wallet.publicKey,
-          systemProgram: web3.SystemProgram.programId,
-        } as any)
-        .rpc();
-        
-      const updatedMarket = await program.account.market.fetch(marketPda);
-      setMu(updatedMarket.mu);
-      setLiquidity(updatedMarket.totalLiquidity.toNumber());
-    } catch (err) {
-      console.error("Error placing prediction:", err);
-    } finally {
-      setIsBetting(false);
-    }
-  };
-
+export default function Home() {
   return (
-    <main className="min-h-screen bg-transparent text-slate-50 font-sans relative overflow-hidden">
-      {/* Animated Background Grid */}
-      <div className="absolute inset-0 bg-grid z-[-1] opacity-30" />
-      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#02020a]/80 to-[#02020a] z-[-1]" />
-      
-      <motion.nav 
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="w-full border-b border-white/10 glass-panel sticky top-0 z-50"
-      >
-        <div className="max-w-7xl mx-auto flex justify-between items-center p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-violet-500 to-indigo-600 rounded-xl flex items-center justify-center font-bold text-xl shadow-[0_0_20px_rgba(139,92,246,0.4)]">
-              G
-            </div>
-            <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">
-              GOSSIP
-            </h1>
-          </div>
-          <div className="flex gap-6 items-center">
-            <Button variant="ghost" className="text-sm font-medium text-slate-300 hover:text-white hidden md:flex">Markets</Button>
-            <Button variant="ghost" className="text-sm font-medium text-slate-300 hover:text-white hidden md:flex">AI Agents</Button>
-            <div className="wallet-button-container hover:scale-105 transition-transform">
-              <WalletMultiButton style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                border: '1px solid rgba(255,255,255,0.1)',
-                backdropFilter: 'blur(10px)',
-                borderRadius: '12px',
-                padding: '0 1.25rem',
-                fontWeight: 600,
-                color: 'white',
-                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)'
-              }} />
-            </div>
-          </div>
-        </div>
-      </motion.nav>
-
-      <motion.div 
-        variants={staggerContainer}
-        initial="hidden"
-        animate="show"
-        className="max-w-7xl mx-auto p-6 md:p-12 grid grid-cols-1 lg:grid-cols-3 gap-8"
-      >
-        {/* Left Column: Market Data & Visualization */}
-        <div className="lg:col-span-2 space-y-8">
-          
-          <motion.div variants={slideUp}>
-            <Card className="glass-card overflow-hidden relative">
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-fuchsia-500 to-cyan-500 opacity-50" />
-              <CardHeader className="pb-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <motion.div 
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                      className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 text-xs font-semibold tracking-widest uppercase mb-4"
-                    >
-                      <BrainCircuit size={14} /> AI vs Human Arena
-                    </motion.div>
-                    <CardTitle className="text-4xl md:text-5xl font-black mb-3 tracking-tight">{MARKET_TITLE}</CardTitle>
-                    <CardDescription className="text-slate-400 text-base max-w-xl">
-                      Trade probability density on a continuous curve. The further from consensus, the closer to infinite upside.
-                    </CardDescription>
-                  </div>
-                  <div className="flex items-center gap-2 bg-green-500/10 text-green-400 px-4 py-1.5 rounded-full text-sm font-bold border border-green-500/20 shadow-[0_0_15px_rgba(34,197,94,0.2)] animate-pulse">
-                    <Activity size={16} /> LIVE
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-10">
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-amber-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-slate-400 text-xs mb-1 uppercase tracking-widest font-semibold">Mean Consensus</p>
-                    <p className="text-3xl font-black text-white">${mu.toFixed(2)}</p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-violet-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-slate-400 text-xs mb-1 uppercase tracking-widest font-semibold">Market Volatility</p>
-                    <p className="text-3xl font-black text-white">{sigma.toFixed(2)}σ</p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <p className="text-slate-400 text-xs mb-1 uppercase tracking-widest font-semibold">Total Liquidity</p>
-                    <p className="text-3xl font-black text-white">{liquidity.toLocaleString()} CASH</p>
-                  </div>
-                </div>
-                
-                <div className="relative group rounded-xl p-1 bg-gradient-to-b from-white/10 to-transparent">
-                  <div className="absolute -inset-4 bg-gradient-to-r from-violet-600/30 to-indigo-600/30 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
-                  <BellCurve mu={mu} sigma={sigma} prediction={prediction} />
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-
-          <motion.div variants={slideUp} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="glass-card group cursor-pointer">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-violet-500/20 rounded-xl text-violet-400 group-hover:scale-110 transition-transform shadow-[0_0_10px_rgba(139,92,246,0.3)]">
-                    <TrendingUp size={22} />
-                  </div>
-                  <CardTitle className="text-lg">Agent Alpha (LSTM)</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-400 mb-5 leading-relaxed">This autonomous model predicted the current outcome with 94.2% accuracy. Powered by GOSSIP MCP.</p>
-                <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                  <span className="text-xs font-mono text-slate-500 bg-black/30 px-2 py-1 rounded">gossip-mcp-v1</span>
-                  <Button variant="ghost" className="text-violet-400 hover:text-violet-300 hover:bg-violet-500/10 text-xs gap-1">
-                    Copy Trade <ArrowRight size={14}/>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="glass-card">
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-cyan-500/20 rounded-xl text-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.3)]">
-                    <ShieldCheck size={22} />
-                  </div>
-                  <CardTitle className="text-lg">Verified Execution</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-slate-400 mb-5 leading-relaxed">Oracle resolution secured by Arcium Confidential Compute. Sybil resistance via World ID.</p>
-                <div className="flex justify-between items-center pt-4 border-t border-white/10">
-                   <div className="flex -space-x-3">
-                     {[1,2,3].map(i => (
-                       <div key={i} className="w-8 h-8 rounded-full border-2 border-slate-900 bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center text-[10px] font-bold text-white/70 shadow-lg">AI</div>
-                     ))}
-                     <div className="w-8 h-8 rounded-full border-2 border-slate-900 bg-violet-600 flex items-center justify-center text-[10px] font-bold text-white shadow-lg">+14</div>
-                  </div>
-                  <span className="text-xs text-slate-500 font-medium">Active Judges</span>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        </div>
-
-        {/* Right Column: Trading Panel */}
-        <motion.div variants={slideUp}>
-          <Card className="glass-panel h-fit sticky top-24 shadow-[0_0_40px_rgba(0,0,0,0.5)] border-t-white/20">
-            <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                  <Sparkles className="text-amber-400" size={24} />
-                  Place Bet
-                </CardTitle>
-              </div>
-              <CardDescription className="text-slate-400">Position yourself against the AI consensus.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-8">
-              
-              <div className="space-y-3">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Target Prediction ($)</label>
-                <div className="relative group">
-                  <div className="absolute -inset-0.5 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl blur opacity-20 group-focus-within:opacity-50 transition duration-500"></div>
-                  <div className="relative flex items-center bg-black/50 border border-white/10 rounded-xl overflow-hidden focus-within:border-violet-500/50 transition-colors">
-                    <span className="pl-4 text-slate-500 font-bold">$</span>
-                    <Input 
-                      type="number" 
-                      value={betValue} 
-                      onChange={(e) => setBetValue(e.target.value)}
-                      className="bg-transparent border-none text-2xl font-black text-white focus-visible:ring-0 focus-visible:ring-offset-0 h-16 pl-2" 
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="space-y-3">
-                 <div className="flex justify-between items-center text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                    <span>Stake Size</span>
-                    <span className="text-violet-400">Bal: 5,000 CASH</span>
-                 </div>
-                 <div className="grid grid-cols-3 gap-3">
-                    <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 h-12 text-sm font-bold transition-all">10</Button>
-                    <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 h-12 text-sm font-bold transition-all">100</Button>
-                    <Button variant="outline" className="bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20 h-12 text-sm font-bold text-amber-400 transition-all">MAX</Button>
-                 </div>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 space-y-3 backdrop-blur-sm">
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400 font-medium">Density Score</span>
-                  <span className="text-sm font-mono text-white">0.00142</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-slate-400 font-medium">Implied Odds</span>
-                  <span className="text-sm font-mono text-green-400">~14.5x</span>
-                </div>
-                <div className="h-px w-full bg-white/10 my-2"></div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-violet-300 font-bold uppercase tracking-wider">Max Payout</span>
-                  <span className="text-lg font-black text-white shadow-white drop-shadow-md">100,000 CASH</span>
-                </div>
-              </div>
-
-              <Button 
-                onClick={handleBet}
-                disabled={isBetting}
-                className="relative w-full h-16 overflow-hidden rounded-2xl group border-none"
+    <div className="min-h-screen">
+      {/* Hero */}
+      <section className="relative pt-16 pb-24 px-4 overflow-hidden">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center min-h-[70vh]">
+            {/* Left Text */}
+            <div className="lg:col-span-7">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="flex items-center gap-3 mb-8"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-violet-600 via-fuchsia-600 to-violet-600 bg-[length:200%_auto] animate-gradient" />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-transparent transition-colors" />
-                <span className="relative text-white font-black text-lg tracking-wider flex items-center gap-2">
-                  {isBetting ? "PROCESSING..." : "CONFIRM PREDICTION"} 
-                  {!isBetting && <ArrowRight size={20} />}
+                <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
+                <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>
+                  Solana Prediction Markets
                 </span>
-              </Button>
-              
-              <div className="flex items-center justify-center gap-2 text-[10px] text-slate-500 uppercase tracking-widest font-semibold">
-                <ShieldCheck size={12} />
-                <span>Smart Contract Audited</span>
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+              </motion.div>
 
-      </motion.div>
-    </main>
+              <motion.h1
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.1 }}
+                className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.05] mb-6"
+              >
+                SMART
+                <br />
+                <span className="gradient-red">INTUITIVE</span>
+                <br />
+                BOLD
+              </motion.h1>
+
+              <motion.p
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.25 }}
+                className="text-base sm:text-lg max-w-lg mb-10 leading-relaxed"
+                style={{ color: "#999999" }}
+              >
+                The first continuous prediction market on Solana. Bet on exact values
+                with infinite upside. AI agents, yield-bearing pools, Gaussian AMM.
+              </motion.p>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.7, delay: 0.4 }}
+                className="flex flex-wrap items-center gap-4"
+              >
+                <Link
+                  href="/markets"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white transition-all hover:scale-[1.03]"
+                  style={{ background: "#E31837" }}
+                >
+                  <span>Explore Markets</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <Link
+                  href="/agents"
+                  className="inline-flex items-center gap-2 px-7 py-3.5 text-sm font-semibold uppercase tracking-wider text-white border transition-all hover:border-[#E31837]"
+                  style={{ borderColor: "rgba(255,255,255,0.12)" }}
+                >
+                  Deploy Agent
+                </Link>
+              </motion.div>
+            </div>
+
+            {/* Right Visual Block */}
+            <motion.div
+              initial={{ opacity: 0, x: 40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.3 }}
+              className="lg:col-span-5 hidden lg:block"
+            >
+              <div className="relative">
+                <div className="w-full aspect-square" style={{ background: "#4A0404" }} />
+                <div className="absolute inset-4 flex flex-col justify-between p-6">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2" style={{ background: "#E31837" }} />
+                    <span className="text-[10px] uppercase tracking-widest" style={{ color: "#C25B5B" }}>Live Market</span>
+                  </div>
+                  <div>
+                    <p className="text-5xl font-bold text-white mb-1">$198.42</p>
+                    <p className="text-xs uppercase tracking-wider" style={{ color: "#C25B5B" }}>Consensus Price / SOL</p>
+                  </div>
+                  <div className="w-full h-[1px]" style={{ background: "rgba(227,24,55,0.2)" }} />
+                  <div className="flex justify-between text-xs" style={{ color: "#999999" }}>
+                    <span>Volatility: 24.5</span>
+                    <span>Liquidity: 124.5K</span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Row — Maroon Blocks with Animated Counters */}
+      <section className="px-4 pb-20">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          className="max-w-5xl mx-auto grid grid-cols-2 lg:grid-cols-4 gap-3"
+        >
+          {stats.map((stat, i) => (
+            <motion.div
+              key={stat.label}
+              variants={itemVariants}
+              className="p-6"
+              style={{ background: i === 1 || i === 2 ? "#4A0404" : "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}
+            >
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
+                <CountUp value={stat.value} suffix={stat.label.includes('%') ? '%' : ''} prefix={stat.label.includes('$') ? '$' : ''} />
+              </p>
+              <p className="text-xs uppercase tracking-wider" style={{ color: "#999999" }}>{stat.label}</p>
+            </motion.div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Features — Grid with Red Accent */}
+      <section className="px-4 pb-20">
+        <div className="max-w-6xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="mb-14"
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
+              <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>Why Choose Us</span>
+            </div>
+            <h2 className="text-3xl sm:text-4xl font-bold text-white">
+              Built for the <span className="gradient-red">next generation</span>
+            </h2>
+          </motion.div>
+
+          <motion.div
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true }}
+            className="grid grid-cols-1 md:grid-cols-2 gap-3"
+          >
+            {features.map((f) => (
+              <motion.div
+                key={f.num}
+                variants={itemVariants}
+                className="group p-8 transition-all hover:bg-[#4A0404]"
+                style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.08)" }}
+              >
+                <div className="flex items-start justify-between mb-6">
+                  <span className="text-4xl font-bold opacity-20" style={{ color: "#E31837" }}>{f.num}</span>
+                  <div className="w-8 h-[2px] mt-4" style={{ background: "#E31837", opacity: 0.5 }} />
+                </div>
+                <h3 className="text-lg font-semibold text-white mb-3 uppercase tracking-wide">{f.title}</h3>
+                <p className="text-sm leading-relaxed" style={{ color: "#999999" }}>{f.description}</p>
+              </motion.div>
+            ))}
+          </motion.div>
+        </div>
+      </section>
+
+      {/* CTA — Red Block */}
+      <section className="px-4 pb-20">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="max-w-5xl mx-auto relative"
+        >
+          <div className="grid grid-cols-1 lg:grid-cols-2">
+            <div className="p-10 lg:p-14" style={{ background: "#E31837" }}>
+              <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4 leading-tight">
+                READY TO<br />START PREDICTING?
+              </h2>
+              <p className="text-sm text-white/70 mb-8 max-w-sm leading-relaxed">
+                Connect your wallet and dive into the most advanced prediction market on Solana.
+              </p>
+              <Link
+                href="/markets"
+                className="inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold uppercase tracking-wider text-[#E31837] bg-white transition-all hover:bg-white/90"
+              >
+                <span>Launch App</span>
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            <div className="hidden lg:block p-14" style={{ background: "#4A0404", border: "1px solid rgba(227,24,55,0.15)", borderLeft: "none" }}>
+              <div className="h-full flex flex-col justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 animate-pulse" style={{ background: "#E31837" }} />
+                  <span className="text-[10px] uppercase tracking-widest text-white/50">Live on Devnet</span>
+                </div>
+                <div className="space-y-6">
+                  {[
+                    { label: "GAUSSIAN AMM", val: "Active" },
+                    { label: "YIELD NATIVE", val: "12.4% APY" },
+                    { label: "AI ORACLE", val: "Arcium" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex justify-between items-center border-b border-white/10 pb-3">
+                      <span className="text-xs font-semibold tracking-wider text-white/40">{item.label}</span>
+                      <span className="text-sm font-medium text-white">{item.val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+    </div>
   );
 }
