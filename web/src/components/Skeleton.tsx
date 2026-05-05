@@ -36,3 +36,56 @@ export function TableRowSkeleton() {
     </div>
   );
 }
+
+export function MarketCardSkeleton() {
+  return (
+    <div className="p-6 h-full" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
+      <div className="flex justify-between items-center mb-4">
+        <Skeleton className="h-5 w-16" />
+        <Skeleton className="h-4 w-12" />
+      </div>
+      <Skeleton className="h-3 w-20 mb-2" />
+      <Skeleton className="h-6 w-full mb-4" />
+      <Skeleton className="h-14 w-full mb-4" />
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <Skeleton className="h-16" />
+        <Skeleton className="h-16" />
+      </div>
+      <div className="flex justify-between">
+        <Skeleton className="h-4 w-16" />
+        <Skeleton className="h-4 w-16" />
+      </div>
+    </div>
+  );
+}
+
+export function HeroSkeleton() {
+  return (
+    <div className="p-8" style={{ background: "linear-gradient(135deg, #4A0404 0%, #1A0808 100%)", border: "1px solid rgba(227,24,55,0.3)" }}>
+      <div className="flex items-center gap-2 mb-3">
+        <Skeleton className="h-2 w-2 rounded-full" />
+        <Skeleton className="h-3 w-20" />
+      </div>
+      <Skeleton className="h-10 w-40 mb-2" />
+      <Skeleton className="h-4 w-64 mb-6" />
+      <div className="flex gap-6 pt-6" style={{ borderTop: "1px solid rgba(227,24,55,0.15)" }}>
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-8 w-20" />
+        <Skeleton className="h-8 w-20" />
+      </div>
+    </div>
+  );
+}
+
+export function StatsSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="p-6" style={{ background: i % 2 === 0 ? "#4A0404" : "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
+          <Skeleton className="h-8 w-24 mb-2" />
+          <Skeleton className="h-3 w-20" />
+        </div>
+      ))}
+    </div>
+  );
+}

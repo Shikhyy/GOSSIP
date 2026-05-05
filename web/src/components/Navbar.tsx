@@ -24,7 +24,7 @@ export default function Navbar() {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.7, ease: "easeOut" }}
       className="fixed top-0 left-0 right-0 z-50"
-      style={{ background: "rgba(13, 2, 2, 0.85)", backdropFilter: "blur(12px)", borderTop: "3px solid #E31837", borderBottom: "1px solid rgba(227, 24, 55, 0.08)" }}
+      style={{ background: "rgba(13, 2, 2, 0.9)", backdropFilter: "blur(16px)", borderTop: "3px solid #E31837", borderBottom: "1px solid rgba(227, 24, 55, 0.08)", boxShadow: "0 4px 30px rgba(0, 0, 0, 0.5)" }}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-14">

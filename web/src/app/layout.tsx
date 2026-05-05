@@ -3,6 +3,9 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProvider } from "@/components/WalletProvider";
 import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import Ticker from "@/components/Ticker";
+import ScrollToTop from "@/components/ScrollToTop";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
 const geistSans = Geist({
@@ -35,7 +38,10 @@ export default function RootLayout({
         <SolanaWalletProvider>
           <AnimatedBackground />
           <Navbar />
-          <div className="pt-16">{children}</div>
+          <Ticker />
+          <div className="pt-16 flex-1">{children}</div>
+          <ScrollToTop />
+          <Footer />
         </SolanaWalletProvider>
       </body>
     </html>

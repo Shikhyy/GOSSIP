@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useMarketData, useWalletBalance, useToast } from "@/hooks";
-import { TradingModal } from "@/components/TradingModal";
+import TradingModal from "@/components/TradingModal";
 
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider, web3, Idl, BN } from "@coral-xyz/anchor";
@@ -299,9 +299,12 @@ export default function MarketDetailPage() {
           <TradingModal
             isOpen={showModal}
             onClose={() => setShowModal(false)}
-            marketId={id}
-            mu={mu}
-            sigma={sigma}
+            onConfirm={handleBet}
+            prediction={parseFloat(betValue)}
+            stake={parseFloat(stakeAmount)}
+            multiplier={String(impliedMultiplier)}
+            potentialPayout={potentialPayout}
+            balance={balance}
           />
         )}
       </div>
