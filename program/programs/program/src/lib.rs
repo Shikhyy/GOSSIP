@@ -78,6 +78,27 @@ pub mod gossip {
         msg!("Market Resolved: {} with final outcome: {}", market.title, final_outcome);
         Ok(())
     }
+
+    /// Settle a user's prediction after market resolves
+    pub fn settle_position(ctx: Context<SettlePosition>) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+        let prediction = &mut ctx.accounts.prediction;
+
+        require!(market.resolved, GossipError::NotResolved);
+        require!(!prediction.settled, GossipError::AlreadySettled);
+
+        let z_score = (market.final_outcome - prediction.initial_mu) / prediction.initial_sigma;
+        let density = (1.0 / (prediction.initial_sigma * (2.0 * std::f64::consts::PI).sqrt()))
+            * (-0.5 * z_score.powi(2)).exp();
+        let multiplier = density * 100000.0;
+
+        let payout = (prediction.amount as f64 * multiplier) as u64;
+        prediction.payout = payout;
+        prediction.settled = true;
+
+        msg!("Settled position with payout: {}", payout);
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -118,6 +139,15 @@ pub struct ResolveMarket<'info> {
     #[account(mut, has_one = authority)]
     pub market: Account<'info, Market>,
     pub authority: Signer<'info>,
+}
+
+#[derive(Accounts)]
+pub struct SettlePosition<'info> {
+    #[account(mut)]
+    pub market: Account<'info, Market>,
+    #[account(mut, has_one = owner)]
+    pub prediction: Account<'info, Prediction>,
+    pub owner: Signer<'info>,
 }
 
 #[account]
