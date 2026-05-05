@@ -23,10 +23,11 @@ describe("gossip", () => {
     program.programId
   );
 
+  const endsAt = Math.floor(Date.now() / 1000) + 7 * 24 * 60 * 60;
+
   it("Creates a continuous market", async () => {
-    // Call the create_market instruction
     await program.methods
-      .createMarket(marketTitle, 150.0, 25.0, 100.0)
+      .createMarket(marketTitle, "Crypto", 150.0, 25.0, 100.0, "AI Judge", endsAt)
       .accounts({
         market: marketPda,
         authority: provider.wallet.publicKey,
@@ -34,14 +35,15 @@ describe("gossip", () => {
       })
       .rpc();
 
-    // Fetch the created account
     const marketAccount = await program.account.market.fetch(marketPda);
 
-    // Assert state
     assert.equal(marketAccount.title, marketTitle);
+    assert.equal(marketAccount.category, "Crypto");
     assert.equal(marketAccount.mu, 150.0);
     assert.equal(marketAccount.sigma, 25.0);
     assert.equal(marketAccount.b, 100.0);
+    assert.equal(marketAccount.resolutionSource, "AI Judge");
+    assert.equal(marketAccount.endsAt, endsAt);
     assert.equal(marketAccount.totalLiquidity.toNumber(), 0);
     assert.isFalse(marketAccount.resolved);
   });
@@ -76,6 +78,33 @@ describe("gossip", () => {
     assert.equal(predictionAccount.point, 180.0);
     assert.equal(predictionAccount.amount.toNumber(), 10);
     assert.equal(predictionAccount.initialMu, 150.0);
+  });
+
+  it("Resolves market and settles position", async () => {
+    await program.methods
+      .resolveMarket(185.0)
+      .accounts({
+        market: marketPda,
+        authority: provider.wallet.publicKey,
+      })
+      .rpc();
+
+    const marketAccount = await program.account.market.fetch(marketPda);
+    assert.isTrue(marketAccount.resolved);
+    assert.equal(marketAccount.finalOutcome, 185.0);
+
+    await program.methods
+      .settlePosition()
+      .accounts({
+        market: marketPda,
+        prediction: predictionPda,
+        owner: provider.wallet.publicKey,
+      })
+      .rpc();
+
+    const predictionAccount = await program.account.prediction.fetch(predictionPda);
+    assert.isTrue(predictionAccount.settled);
+    assert.isAbove(predictionAccount.payout.toNumber(), 0);
   });
 });
 

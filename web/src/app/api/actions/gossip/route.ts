@@ -1,6 +1,5 @@
 import {
   ActionPostResponse,
-  createPostResponse,
   ActionGetResponse,
   ActionPostRequest,
   createActionHeaders,
@@ -30,6 +29,7 @@ export const GET = async (req: Request) => {
     links: {
       actions: [
         {
+          type: "transaction",
           label: "Bet 10 CASH",
           href: `/api/actions/gossip?amount=10&point={prediction}`,
           parameters: [
@@ -41,6 +41,7 @@ export const GET = async (req: Request) => {
           ],
         },
         {
+          type: "transaction",
           label: "Bet 100 CASH",
           href: `/api/actions/gossip?amount=100&point={prediction}`,
           parameters: [
@@ -123,12 +124,11 @@ export const POST = async (req: Request) => {
       recentBlockhash: blockhash,
     }).add(ix);
 
-    const payload: ActionPostResponse = await createPostResponse({
-      fields: {
-        transaction,
-        message: `Successfully locked ${amount} CASH for predicting $${point}`,
-      },
-    });
+    const payload: ActionPostResponse = {
+      type: "transaction",
+      transaction: transaction.serialize({ requireAllSignatures: false, verifySignatures: false }).toString("base64"),
+      message: `Successfully locked ${amount} CASH for predicting $${point}`,
+    };
 
     return Response.json(payload, { headers });
   } catch (err) {

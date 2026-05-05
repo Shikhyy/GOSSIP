@@ -10,6 +10,7 @@ import {
   ArrowRight,
   Search,
   Filter,
+  Plus,
 } from "lucide-react";
 
 const markets = [
@@ -139,6 +140,9 @@ export default function MarketsPage() {
               </div>
               <h1 className="text-4xl font-bold text-white mb-2">MARKETS</h1>
               <p style={{ color: "#999999" }}>Continuous prediction markets with infinite upside</p>
+              <Link href="/markets/create" className="inline-flex items-center gap-2 mt-4 px-4 py-2 text-sm font-semibold uppercase tracking-wider text-white transition-all hover:scale-105" style={{ background: "#E31837" }}>
+                <Plus className="w-4 h-4" /> Create Market
+              </Link>
               <div className="flex items-center gap-6 mt-6 pt-6" style={{ borderTop: "1px solid rgba(227,24,55,0.15)" }}>
                 <div>
                   <p className="text-2xl font-bold text-white">$2.4M</p>
