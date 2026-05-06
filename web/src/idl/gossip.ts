@@ -53,18 +53,55 @@ export type Gossip = {
           }
         },
         {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "title"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
           "name": "authority",
           "writable": true,
           "signer": true
         },
         {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
         {
           "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "category",
           "type": "string"
         },
         {
@@ -78,6 +115,14 @@ export type Gossip = {
         {
           "name": "b",
           "type": "f64"
+        },
+        {
+          "name": "resolutionSource",
+          "type": "string"
+        },
+        {
+          "name": "endsAt",
+          "type": "i64"
         }
       ]
     },
@@ -128,6 +173,10 @@ export type Gossip = {
               {
                 "kind": "account",
                 "path": "user"
+              },
+              {
+                "kind": "arg",
+                "path": "predictionId"
               }
             ]
           }
@@ -138,11 +187,46 @@ export type Gossip = {
           "signer": true
         },
         {
+          "name": "userTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.title",
+                "account": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
+        {
+          "name": "predictionId",
+          "type": "u64"
+        },
         {
           "name": "point",
           "type": "f64"
@@ -187,6 +271,110 @@ export type Gossip = {
           "type": "f64"
         }
       ]
+    },
+    {
+      "name": "settlePosition",
+      "docs": [
+        "Settle a user's prediction after market resolves"
+      ],
+      "discriminator": [
+        33,
+        156,
+        74,
+        218,
+        215,
+        42,
+        112,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "prediction",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "prediction"
+          ]
+        },
+        {
+          "name": "userTokenAccount",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.title",
+                "account": "market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "updateMarket",
+      "docs": [
+        "Update market parameters (oracle only)"
+      ],
+      "discriminator": [
+        153,
+        39,
+        2,
+        197,
+        179,
+        50,
+        199,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "newMu",
+          "type": "f64"
+        },
+        {
+          "name": "newSigma",
+          "type": "f64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -222,6 +410,26 @@ export type Gossip = {
       "code": 6000,
       "name": "alreadyResolved",
       "msg": "Market is already resolved"
+    },
+    {
+      "code": 6001,
+      "name": "notResolved",
+      "msg": "Market has not been resolved yet"
+    },
+    {
+      "code": 6002,
+      "name": "alreadySettled",
+      "msg": "Position already settled"
+    },
+    {
+      "code": 6003,
+      "name": "predictionNotFound",
+      "msg": "Prediction not found"
+    },
+    {
+      "code": 6004,
+      "name": "invalidParams",
+      "msg": "Invalid market parameters"
     }
   ],
   "types": [
@@ -235,7 +443,15 @@ export type Gossip = {
             "type": "pubkey"
           },
           {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
             "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "category",
             "type": "string"
           },
           {
@@ -261,6 +477,22 @@ export type Gossip = {
           {
             "name": "finalOutcome",
             "type": "f64"
+          },
+          {
+            "name": "resolutionSource",
+            "type": "string"
+          },
+          {
+            "name": "endsAt",
+            "type": "i64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vaultBump",
+            "type": "u8"
           }
         ]
       }
@@ -270,6 +502,10 @@ export type Gossip = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
           {
             "name": "owner",
             "type": "pubkey"
@@ -293,6 +529,18 @@ export type Gossip = {
           {
             "name": "initialSigma",
             "type": "f64"
+          },
+          {
+            "name": "createdAt",
+            "type": "i64"
+          },
+          {
+            "name": "settled",
+            "type": "bool"
+          },
+          {
+            "name": "payout",
+            "type": "u64"
           }
         ]
       }

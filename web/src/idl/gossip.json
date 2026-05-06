@@ -47,18 +47,55 @@
           }
         },
         {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "title"
+              }
+            ]
+          }
+        },
+        {
+          "name": "mint"
+        },
+        {
           "name": "authority",
           "writable": true,
           "signer": true
         },
         {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
+        },
+        {
+          "name": "rent",
+          "address": "SysvarRent111111111111111111111111111111111"
         }
       ],
       "args": [
         {
           "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "category",
           "type": "string"
         },
         {
@@ -72,6 +109,14 @@
         {
           "name": "b",
           "type": "f64"
+        },
+        {
+          "name": "resolution_source",
+          "type": "string"
+        },
+        {
+          "name": "ends_at",
+          "type": "i64"
         }
       ]
     },
@@ -122,6 +167,10 @@
               {
                 "kind": "account",
                 "path": "user"
+              },
+              {
+                "kind": "arg",
+                "path": "prediction_id"
               }
             ]
           }
@@ -132,11 +181,46 @@
           "signer": true
         },
         {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.title",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
       ],
       "args": [
+        {
+          "name": "prediction_id",
+          "type": "u64"
+        },
         {
           "name": "point",
           "type": "f64"
@@ -181,6 +265,110 @@
           "type": "f64"
         }
       ]
+    },
+    {
+      "name": "settle_position",
+      "docs": [
+        "Settle a user's prediction after market resolves"
+      ],
+      "discriminator": [
+        33,
+        156,
+        74,
+        218,
+        215,
+        42,
+        112,
+        175
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "prediction",
+          "writable": true
+        },
+        {
+          "name": "owner",
+          "signer": true,
+          "relations": [
+            "prediction"
+          ]
+        },
+        {
+          "name": "user_token_account",
+          "writable": true
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "market.title",
+                "account": "Market"
+              }
+            ]
+          }
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_market",
+      "docs": [
+        "Update market parameters (oracle only)"
+      ],
+      "discriminator": [
+        153,
+        39,
+        2,
+        197,
+        179,
+        50,
+        199,
+        217
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": [
+        {
+          "name": "new_mu",
+          "type": "f64"
+        },
+        {
+          "name": "new_sigma",
+          "type": "f64"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -216,6 +404,26 @@
       "code": 6000,
       "name": "AlreadyResolved",
       "msg": "Market is already resolved"
+    },
+    {
+      "code": 6001,
+      "name": "NotResolved",
+      "msg": "Market has not been resolved yet"
+    },
+    {
+      "code": 6002,
+      "name": "AlreadySettled",
+      "msg": "Position already settled"
+    },
+    {
+      "code": 6003,
+      "name": "PredictionNotFound",
+      "msg": "Prediction not found"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidParams",
+      "msg": "Invalid market parameters"
     }
   ],
   "types": [
@@ -229,7 +437,15 @@
             "type": "pubkey"
           },
           {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
             "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "category",
             "type": "string"
           },
           {
@@ -255,6 +471,22 @@
           {
             "name": "final_outcome",
             "type": "f64"
+          },
+          {
+            "name": "resolution_source",
+            "type": "string"
+          },
+          {
+            "name": "ends_at",
+            "type": "i64"
+          },
+          {
+            "name": "mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
           }
         ]
       }
@@ -264,6 +496,10 @@
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "id",
+            "type": "u64"
+          },
           {
             "name": "owner",
             "type": "pubkey"
@@ -287,6 +523,18 @@
           {
             "name": "initial_sigma",
             "type": "f64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "settled",
+            "type": "bool"
+          },
+          {
+            "name": "payout",
+            "type": "u64"
           }
         ]
       }

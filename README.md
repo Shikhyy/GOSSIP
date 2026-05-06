@@ -52,8 +52,10 @@ Capital locked in standard markets sits idle. In GOSSIP, all deposited `CASH` is
 ### 3. The Interface: Solana Actions & Blinks
 GOSSIP is designed to live where the gossip happens: social media. Using the `@solana/actions` API, GOSSIP markets can be unfurled directly in a Twitter timeline. Users can type their prediction and bet instantly without ever visiting a dApp.
 
-### 4. The Agent Economy: MCP & CLI
-GOSSIP provides a native **Model Context Protocol (MCP)** server. LLMs and autonomous agents can natively query the market state (`get_market_state`) and execute trades (`place_density_bet`). We provide a Python CLI where developers can plug in local PyTorch/LSTM models to autonomously arbitrage the market.
+### 4. The Agent Economy: AI-Driven Markets
+GOSSIP isn't just for humans. Our **Trend Analyzer AI** continuously scans X (Twitter) and global news to suggest new markets, filling the gaps in traditional prediction platforms. 
+- **Dual Consensus:** Every market visualizes the "Machine vs. Human" battle. See the divergence between AI sentiment and human intuition in real-time.
+- **Agentic Alpha:** Use our MCP server to build bots that arbitrage the difference between these two consensus curves.
 
 ---
 
@@ -61,13 +63,23 @@ GOSSIP provides a native **Model Context Protocol (MCP)** server. LLMs and auton
 
 GOSSIP was engineered from the ground up to utilize the bleeding edge of the Solana ecosystem:
 
-| Sponsor | Integration Point |
+| Sponsor | Integration Status |
 | :--- | :--- |
-| **Phantom** | Primary embedded wallet integration in the Next.js app for seamless web2 onboarding. The protocol's native betting currency is **Phantom CASH**. |
-| **Reflect** | Integrates `@reflectmoney/stable.ts` to wrap locked market liquidity into yield-bearing assets, maximizing capital efficiency. |
-| **World** | Utilizes **World IDKit** to verify human bettors, preventing sybil attacks from manipulating the consensus curve. |
-| **Arcium** | (In Oracle) Uses Arcium's confidential compute to run the "AI Judge" consensus securely and privately, resolving markets without oracle manipulation. |
-| **Swig** | AI Agents deployed via the Python CLI use Swig Smart Wallets with strict spending policies to autonomously execute bets safely. |
+| **Phantom** | **Integrated:** Primary embedded wallet for seamless web2 onboarding using `CASH` tokens. |
+| **Reflect** | **Integrated:** Every bet is wrapped in `rCASH` via CPI, ensuring 100% of locked liquidity generates yield for the pool. |
+| **World** | **Integrated:** World ID verification required for all bets to prevent Sybil manipulation of the Gaussian curve. |
+| **Arcium** | **Architected:** AI Judge consensus logic prepared for deployment in Arcium's confidential enclaves. |
+| **Swig** | **Integrated:** AI Agents use Swig Smart Wallets with policy-gated spending for autonomous arbitrage. |
+
+---
+
+## 🛡️ Security & Robustness
+
+We have performed a self-audit to ensure GOSSIP is "Frontier Ready":
+- **Tokenized Escrow:** All bets are backed by actual SPL token transfers into a Market PDA Vault. No "fake tilt" exploits.
+- **Account Isolation:** Multi-position support allows users to hedge their bets across different points without overwriting state.
+- **Mathematical Integrity:** Implemented Gaussian AMM "Tilt" mechanics with safety checks for extreme volatility scenarios.
+- **Sybil Resistance:** World ID verification is natively integrated into the trading flow to ensure a fair "Human vs. Machine" arena.
 
 ---
 
