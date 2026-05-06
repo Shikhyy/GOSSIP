@@ -13,6 +13,7 @@ import {
   BarChart3,
 } from "lucide-react";
 import { useUserPositions } from "@/hooks";
+import PortfolioChart from "@/components/PortfolioChart";
 
 const positions = [
   {
@@ -179,6 +180,15 @@ export default function PortfolioPage() {
               <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "#999999" }}>{stat.label}</p>
             </div>
           ))}
+        </motion.div>
+
+        {/* Portfolio Performance Chart */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-8">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
+            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>Performance</span>
+          </div>
+          <PortfolioChart className="h-48" />
         </motion.div>
 
         {/* Active Positions */}
