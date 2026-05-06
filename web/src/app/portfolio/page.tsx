@@ -188,7 +188,9 @@ export default function PortfolioPage() {
             <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
             <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>Performance</span>
           </div>
-          <PortfolioChart className="h-48" />
+          <div className="h-48">
+  <PortfolioChart />
+</div>
         </motion.div>
 
         {/* Active Positions */}
