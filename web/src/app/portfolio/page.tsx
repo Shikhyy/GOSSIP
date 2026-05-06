@@ -1,294 +1,192 @@
 "use client";
 
-import React from "react";
 import { motion } from "framer-motion";
-import {
-  Wallet,
-  TrendingUp,
-  TrendingDown,
-  Clock,
-  Target,
-  Award,
-  ArrowUpRight,
-  BarChart3,
-} from "lucide-react";
-import { useUserPositions } from "@/hooks";
+import { ArrowUpRight, Bot, Clock3, TrendingDown, TrendingUp, Wallet2 } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
 import PortfolioChart from "@/components/PortfolioChart";
-
-const positions = [
-  {
-    market: "Will SOL hit $250 by Friday?",
-    prediction: 245.0,
-    stake: 50,
-    currentPnl: "+12.4%",
-    status: "active",
-    entered: "2 days ago",
-    mu: 198.42,
-  },
-  {
-    market: "BTC ETF Inflows Next Week ($M)",
-    prediction: 520.0,
-    stake: 25,
-    currentPnl: "-3.2%",
-    status: "active",
-    entered: "5 days ago",
-    mu: 450.0,
-  },
-  {
-    market: "NYC Temperature on Dec 31 (°F)",
-    prediction: 35.0,
-    stake: 10,
-    currentPnl: "+8.7%",
-    status: "active",
-    entered: "1 week ago",
-    mu: 38.5,
-  },
-  {
-    market: "Fed Funds Rate Decision (%)",
-    prediction: 4.5,
-    stake: 100,
-    currentPnl: "+1.1%",
-    status: "active",
-    entered: "3 days ago",
-    mu: 4.25,
-  },
-];
-
-const history = [
-  {
-    market: "ETH Average Gas Price (gwei)",
-    prediction: 35.0,
-    actual: 28.4,
-    stake: 20,
-    payout: 0,
-    result: "loss",
-    date: "May 1, 2026",
-  },
-  {
-    market: "SOL Price March Close ($)",
-    prediction: 185.0,
-    actual: 192.5,
-    stake: 30,
-    payout: 145.5,
-    result: "win",
-    date: "Apr 1, 2026",
-  },
-  {
-    market: "AI Benchmark Score",
-    prediction: 92.0,
-    actual: 89.2,
-    stake: 15,
-    payout: 0,
-    result: "loss",
-    date: "Mar 15, 2026",
-  },
-];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: "spring" as const, stiffness: 100, damping: 20 },
-  },
-};
+import { TableRowSkeleton } from "@/components/Skeleton";
+import { useUserPositions } from "@/hooks";
+import { formatCompactCurrency, formatPercent, positionHistory, portfolioSeries } from "@/lib/demo-data";
 
 export default function PortfolioPage() {
-  const { positions: userPositions, isLoading } = useUserPositions();
+  const { positions, isLoading } = useUserPositions();
 
-  const positions = userPositions.length > 0 ? userPositions : [
-    {
-      market: "Will SOL hit $250 by Friday?",
-      prediction: 245.0,
-      stake: 50,
-      currentPnl: "+12.4%",
-      status: "active",
-      entered: "2 days ago",
-      mu: 198.42,
-    },
-    {
-      market: "BTC ETF Inflows Next Week ($M)",
-      prediction: 520.0,
-      stake: 25,
-      currentPnl: "-3.2%",
-      status: "active",
-      entered: "5 days ago",
-      mu: 450.0,
-    },
-    {
-      market: "NYC Temperature on Dec 31 (°F)",
-      prediction: 35.0,
-      stake: 10,
-      currentPnl: "+8.7%",
-      status: "active",
-      entered: "1 week ago",
-      mu: 38.5,
-    },
-    {
-      market: "Fed Funds Rate Decision (%)",
-      prediction: 4.5,
-      stake: 100,
-      currentPnl: "+1.1%",
-      status: "active",
-      entered: "3 days ago",
-      mu: 4.25,
-    },
-  ];
-
-  const calculatePnL = (pos: typeof positions[0]) => {
-    const currentValue = pos.mu > pos.prediction 
-      ? pos.stake * (1 + (pos.mu - pos.prediction) / pos.mu)
-      : pos.stake * (1 - (pos.prediction - pos.mu) / pos.mu);
-    const pnl = ((currentValue - pos.stake) / pos.stake) * 100;
-    return pnl;
-  };
-
-  const totalPnL = positions.reduce((acc, pos) => acc + calculatePnL(pos), 0);
-  const avgPnL = totalPnL / positions.length;
+  const totalStaked = positions.reduce((sum, position) => sum + position.stake, 0);
+  const totalPnl = positions.reduce((sum, position) => {
+    const pnl = Number(position.currentPnl.replace("%", ""));
+    return sum + (Number.isFinite(pnl) ? pnl : 0);
+  }, 0);
 
   return (
-    <div className="min-h-screen px-4 pb-20">
-      <div className="max-w-6xl mx-auto pt-8">
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-10">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>Your Dashboard</span>
-          </div>
-          <h1 className="text-4xl font-bold text-white mb-2">PORTFOLIO</h1>
-          <p style={{ color: "#999999" }}>Track active positions, P&L, and trading history</p>
-        </motion.div>
-
-        {/* Summary Cards */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-          {[
-            { label: "Net Worth", value: "$4,247.80", detail: "Total Asset Value" },
-            { label: "AI Correlation", value: "84%", detail: "Alignment with Agents", accent: true },
-            { label: "Agent Alpha", value: "+4.2%", detail: "Vs Machine Avg", accent: true },
-            { label: "Profit Factor", value: "2.4x", detail: "Win/Loss Ratio" },
-          ].map((stat, i) => (
-            <div key={stat.label} className="p-6 relative group overflow-hidden" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.15)" }}>
-              <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -mr-16 -mt-16 transition-colors ${stat.accent ? "bg-blue-500/10" : "bg-white/5"}`} />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: "#666" }}>{stat.label}</p>
-              <p className="text-3xl font-black text-white tracking-tighter mb-1">{stat.value}</p>
-              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#444" }}>{stat.detail}</p>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* Portfolio Performance Chart */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-12 p-8" style={{ background: "#0D0202", border: "1px solid rgba(227,24,55,0.2)" }}>
-          <div className="flex items-center justify-between mb-8">
-            <div className="flex items-center gap-3">
-              <BarChart3 className="w-5 h-5 text-[#E31837]" />
-              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white">Value Projection (30D)</h2>
-            </div>
-            <div className="flex gap-4">
-              <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: "#666" }}><span className="w-2 h-2 rounded-full bg-red-500" /> Net Equity</span>
-            </div>
-          </div>
-          <div className="h-64">
-            <PortfolioChart />
-          </div>
-        </motion.div>
-
-        {/* Active Positions */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-10">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
-            <h2 className="text-lg font-semibold text-white uppercase tracking-wide">Active Positions</h2>
-          </div>
-
-          <div className="overflow-hidden" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-            <div className="grid grid-cols-12 gap-2 px-6 py-3 text-[10px] uppercase tracking-wider font-medium" style={{ color: "#999999", borderBottom: "1px solid rgba(227,24,55,0.08)" }}>
-              <div className="col-span-4 sm:col-span-3">Market</div>
-              <div className="col-span-2 text-right">Prediction</div>
-              <div className="col-span-2 hidden sm:block text-right">Stake</div>
-              <div className="col-span-3 sm:col-span-2 text-right">P&L</div>
-              <div className="col-span-3 sm:col-span-2 text-right">Time</div>
+    <div className="px-4 pb-10">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface-strong rounded-[28px] p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="pill pill-positive">
+                <Wallet2 className="h-3.5 w-3.5" />
+                Portfolio live
+              </span>
+              <span className="pill">
+                <Bot className="h-3.5 w-3.5 text-[#4da3ff]" />
+                Agent correlation 84%
+              </span>
             </div>
 
-            <motion.div variants={containerVariants} initial="hidden" animate="visible">
-              {positions.map((pos, i) => (
-                <motion.div key={i} variants={itemVariants} className="grid grid-cols-12 gap-2 px-6 py-4 items-center hover:bg-white/[0.03] transition-colors" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                  <div className="col-span-4 sm:col-span-3">
-                    <p className="text-sm font-medium text-white truncate">{pos.market}</p>
-                    <p className="text-xs" style={{ color: "#999999" }}>μ = {pos.mu}</p>
-                  </div>
-                  <div className="col-span-2 text-right">
-                    <span className="text-sm font-mono font-semibold text-white">${pos.prediction}</span>
-                  </div>
-                  <div className="col-span-2 hidden sm:block text-right text-sm font-mono" style={{ color: "#999999" }}>{pos.stake} CASH</div>
-                  <div className="col-span-3 sm:col-span-2 text-right">
-                    <span className="inline-flex items-center gap-1 text-sm font-mono font-semibold" style={{ color: pos.currentPnl.startsWith("+") ? "#22C55E" : "#E31837" }}>
-                      {pos.currentPnl.startsWith("+") ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                      {pos.currentPnl}
-                    </span>
-                  </div>
-                  <div className="col-span-3 sm:col-span-2 text-right">
-                    <span className="text-xs flex items-center justify-end gap-1" style={{ color: "#999999" }}>
-                      <Clock className="w-3 h-3" /> {pos.entered}
-                    </span>
-                  </div>
-                </motion.div>
+            <h1 className="mt-6 text-4xl font-semibold text-white">Portfolio</h1>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#9cb0ca]">
+              Track open positions, payout convexity, and machine alignment in a denser trading layout. This page now behaves like a desk view instead of a generic dashboard.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-4">
+              {[
+                { label: "Account equity", value: formatCompactCurrency(4722), detail: "30 day curve" },
+                { label: "Open stake", value: `${totalStaked.toFixed(0)} CASH`, detail: `${positions.length} positions` },
+                { label: "Open P&L", value: formatPercent(totalPnl, 1), detail: "Across active positions" },
+                { label: "Win ratio", value: "58%", detail: "Closed book" },
+              ].map((item) => (
+                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                  <p className="metric-label">{item.label}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
+                  <p className="mt-2 text-sm text-[#8fa4c2]">{item.detail}</p>
+                </div>
               ))}
-            </motion.div>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
 
-        {/* History */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.3 }}>
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
-            <h2 className="text-lg font-semibold text-white uppercase tracking-wide">Closed Positions</h2>
-          </div>
+          <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }} className="surface rounded-[28px] p-6">
+            <p className="section-kicker">Position health</p>
+            <h2 className="section-title mt-2">Where you’re leaning</h2>
+            <div className="mt-5 space-y-3">
+              {[
+                {
+                  title: "Risk bias",
+                  value: "Moderate long tail",
+                  detail: "Most exposure is still centered around crypto and macro weekly contracts.",
+                },
+                {
+                  title: "Agent overlap",
+                  value: "84% aligned",
+                  detail: "Current tickets are mostly in sync with live agent flow, with room for more contrarian sizing.",
+                },
+                {
+                  title: "Cash efficiency",
+                  value: "2.4x payout factor",
+                  detail: "Open book stays concentrated in higher-liquidity contracts, keeping price discovery cleaner.",
+                },
+              ].map((item) => (
+                <div key={item.title} className="rounded-2xl border border-white/8 bg-[#091523] p-4">
+                  <p className="metric-label">{item.title}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{item.value}</p>
+                  <p className="mt-2 text-sm leading-relaxed text-[#8fa4c2]">{item.detail}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </section>
 
-          <div className="overflow-hidden" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-            <div className="grid grid-cols-12 gap-2 px-6 py-3 text-[10px] uppercase tracking-wider font-medium" style={{ color: "#999999", borderBottom: "1px solid rgba(227,24,55,0.08)" }}>
-              <div className="col-span-4 sm:col-span-3">Market</div>
-              <div className="col-span-2 text-right">Predicted</div>
-              <div className="col-span-2 hidden sm:block text-right">Actual</div>
-              <div className="col-span-2 sm:col-span-1 text-right">Stake</div>
-              <div className="col-span-2 text-right">Result</div>
-              <div className="col-span-2 hidden md:block text-right">Date</div>
+        <section className="surface rounded-[28px] p-6">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="section-kicker">Equity curve</p>
+              <h2 className="section-title mt-2">30 day portfolio trajectory</h2>
+            </div>
+            <span className="pill pill-positive">+16.9% over 30 days</span>
+          </div>
+          <div className="mt-6 h-72">
+            <PortfolioChart points={portfolioSeries} />
+          </div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <div className="surface rounded-[28px] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Open positions</p>
+                <h2 className="section-title mt-2">Active book</h2>
+              </div>
+              <span className="text-sm text-[#8fa4c2]">{positions.length} positions</span>
             </div>
 
-            {history.map((h, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 px-6 py-4 items-center hover:bg-white/[0.03] transition-colors" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-                <div className="col-span-4 sm:col-span-3">
-                  <p className="text-sm font-medium text-white truncate">{h.market}</p>
-                </div>
-                <div className="col-span-2 text-right">
-                  <span className="text-sm font-mono text-white">{h.prediction}</span>
-                </div>
-                <div className="col-span-2 hidden sm:block text-right">
-                  <span className="text-sm font-mono" style={{ color: "#999999" }}>{h.actual}</span>
-                </div>
-                <div className="col-span-2 sm:col-span-1 text-right text-sm font-mono" style={{ color: "#999999" }}>{h.stake}</div>
-                <div className="col-span-2 text-right">
-                  {h.result === "win" ? (
-                    <span className="inline-flex items-center gap-1 text-sm font-mono font-semibold" style={{ color: "#22C55E" }}>
-                      <ArrowUpRight className="w-3.5 h-3.5" /> +{h.payout}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-sm font-mono font-semibold" style={{ color: "#E31837" }}>
-                      <TrendingDown className="w-3.5 h-3.5" /> -{h.stake}
-                    </span>
-                  )}
-                </div>
-                <div className="col-span-2 hidden md:block text-right text-xs" style={{ color: "#999999" }}>{h.date}</div>
+            <div className="mt-5 overflow-hidden rounded-2xl border border-white/8">
+              <div className="grid grid-cols-[2.1fr_repeat(4,1fr)] gap-3 bg-white/4 px-4 py-3 text-[11px] uppercase tracking-[0.08em] text-[#8fa4c2]">
+                <span>Market</span>
+                <span className="text-right">Prediction</span>
+                <span className="text-right">Stake</span>
+                <span className="text-right">P&L</span>
+                <span className="text-right">Opened</span>
               </div>
-            ))}
+
+              {isLoading ? (
+                <div className="px-2 py-2">
+                  {[0, 1, 2].map((row) => (
+                    <TableRowSkeleton key={row} />
+                  ))}
+                </div>
+              ) : positions.length === 0 ? (
+                <EmptyState type="positions" />
+              ) : (
+                positions.map((position) => (
+                  <div key={`${position.market}-${position.entered}`} className="table-row grid grid-cols-[2.1fr_repeat(4,1fr)] gap-3 px-4 py-4">
+                    <div>
+                      <p className="text-sm font-medium text-white">{position.market}</p>
+                      <p className="mt-1 text-xs text-[#8fa4c2]">Current μ {position.mu}</p>
+                    </div>
+                    <div className="text-right text-sm font-medium text-white">${position.prediction}</div>
+                    <div className="text-right text-sm text-white">{position.stake} CASH</div>
+                    <div className={`text-right text-sm font-medium ${position.currentPnl.startsWith("+") ? "text-[#19c37d]" : "text-[#ff5f6d]"}`}>
+                      <span className="inline-flex items-center gap-1">
+                        {position.currentPnl.startsWith("+") ? <TrendingUp className="h-3.5 w-3.5" /> : <TrendingDown className="h-3.5 w-3.5" />}
+                        {position.currentPnl}
+                      </span>
+                    </div>
+                    <div className="text-right text-sm text-[#8fa4c2]">{position.entered}</div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
-        </motion.div>
+
+          <div className="surface rounded-[28px] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">History</p>
+                <h2 className="section-title mt-2">Closed positions</h2>
+              </div>
+              <Clock3 className="h-4 w-4 text-[#4da3ff]" />
+            </div>
+
+            <div className="mt-5 space-y-3">
+              {positionHistory.map((entry) => (
+                <div key={`${entry.market}-${entry.date}`} className="rounded-2xl border border-white/8 bg-[#091523] p-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-white">{entry.market}</p>
+                      <p className="mt-1 text-xs text-[#8fa4c2]">
+                        Predicted {entry.prediction} vs actual {entry.actual}
+                      </p>
+                    </div>
+                    <span className={`pill ${entry.result === "win" ? "pill-positive" : "pill-negative"}`}>
+                      {entry.result}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex items-center justify-between text-sm">
+                    <span className="text-[#8fa4c2]">{entry.date}</span>
+                    <span className={entry.result === "win" ? "text-[#19c37d]" : "text-[#ff5f6d]"}>
+                      {entry.result === "win" ? (
+                        <span className="inline-flex items-center gap-1">
+                          <ArrowUpRight className="h-3.5 w-3.5" /> +{entry.payout}
+                        </span>
+                      ) : (
+                        `-${entry.stake}`
+                      )}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
       </div>
     </div>
   );

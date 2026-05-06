@@ -49,8 +49,9 @@ export default function TradingModal({
     try {
       await onConfirm();
       onClose();
-    } catch (err: any) {
-      setError(err.message || "Transaction failed");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Transaction failed";
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -115,7 +116,7 @@ export default function TradingModal({
                     onSuccess={handleVerify}
                     verification_level={VerificationLevel.Device}
                   >
-                    {({ open }) => (
+                    {({ open }: { open: () => void }) => (
                       <button
                         onClick={open}
                         className="w-full py-3 px-4 flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest transition-all border border-dashed hover:bg-white/5"

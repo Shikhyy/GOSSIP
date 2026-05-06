@@ -1,118 +1,137 @@
 "use client";
 
-import { useState, useMemo, useEffect } from "react";
-import { motion } from "framer-motion";
-import { useParams } from "next/navigation";
-import BellCurve from "@/components/BellCurve";
-import {
-  Activity,
-  ArrowLeft,
-  CheckCircle2,
-  TrendingUp,
-  Clock,
-  Users,
-  Zap,
-} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useMarketData, useWalletBalance, useToast } from "@/hooks";
-import TradingModal from "@/components/TradingModal";
-
+import { useParams } from "next/navigation";
+import { motion } from "framer-motion";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { Program, AnchorProvider, web3, Idl, BN } from "@coral-xyz/anchor";
+import { AnchorProvider, BN, Idl, Program, web3 } from "@coral-xyz/anchor";
+import { Activity, ArrowLeft, ArrowRight, Bot, Info, ShieldCheck, Sparkles, Zap } from "lucide-react";
+import BellCurve from "@/components/BellCurve";
+import TradingModal from "@/components/TradingModal";
+import { useMarketData, useToast, useWalletBalance } from "@/hooks";
 import { Gossip } from "@/idl/gossip";
 import IDL from "@/idl/gossip.json";
+import { formatCompactCurrency, formatPercent, getMarketById } from "@/lib/demo-data";
 
-const PROGRAM_ID = new web3.PublicKey(
-  "9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi"
-);
 const MARKET_TITLE = "Will SOL hit 250 by Friday?";
 
-const marketData: Record<string, { title: string; category: string }> = {
-  "sol-price": { title: "Will SOL hit $250 by Friday?", category: "Crypto" },
-  "btc-etf": { title: "BTC ETF Inflows Next Week ($M)", category: "Finance" },
-  "nyc-temp": { title: "NYC Temperature on Dec 31 (°F)", category: "Weather" },
-  "fed-rate": { title: "Fed Funds Rate Decision (%)", category: "Macro" },
-  "eth-gas": { title: "ETH Average Gas Price (gwei)", category: "Crypto" },
-  "ai-benchmark": { title: "GPT-5 MMLU Score (%)", category: "AI" },
-};
+interface MarketAccount {
+  mu: number;
+  sigma: number;
+  totalLiquidity: BN;
+  mint: web3.PublicKey;
+}
+
+interface RpcMethodBuilder {
+  accounts(accounts: Record<string, unknown>): {
+    rpc(): Promise<string>;
+  };
+}
 
 export default function MarketDetailPage() {
   const params = useParams();
   const id = (params.id as string) || "sol-price";
-  const marketInfo = marketData[id] || marketData["sol-price"];
+  const meta = getMarketById(id);
 
+  const { mu: hookMu, sigma: hookSigma, liquidity: hookLiquidity, error: hookError } = useMarketData(id);
+  const { balance } = useWalletBalance();
   const { connection } = useConnection();
   const wallet = useWallet();
   const { showToast } = useToast();
 
-  const { mu: hookMu = 198.42, sigma: hookSigma = 24.5, liquidity: hookLiquidity = 124500 } = useMarketData(id);
-  const { balance = 5000 } = useWalletBalance();
-
   const [mu, setMu] = useState(hookMu);
   const [sigma, setSigma] = useState(hookSigma);
   const [liquidity, setLiquidity] = useState(hookLiquidity);
-  
-  // Mock Agent Sentiment Data
-  const agentMu = useMemo(() => mu * (1 + (Math.random() - 0.5) * 0.1), [mu]);
-  const agentSigma = useMemo(() => sigma * 0.8, [sigma]);
-
+  const [betValue, setBetValue] = useState(String(meta.consensus));
+  const [stakeAmount, setStakeAmount] = useState("50");
   const [prediction, setPrediction] = useState<number | undefined>(undefined);
-  const [betValue, setBetValue] = useState("200");
-  const [stakeAmount, setStakeAmount] = useState("10");
+  const [ticketError, setTicketError] = useState<string | null>(hookError);
   const [isBetting, setIsBetting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => setMu(hookMu), [hookMu]);
+  useEffect(() => setSigma(hookSigma), [hookSigma]);
+  useEffect(() => setLiquidity(hookLiquidity), [hookLiquidity]);
+  useEffect(() => setTicketError(hookError), [hookError]);
 
   const program = useMemo(() => {
     if (!connection) return null;
     const provider = new AnchorProvider(
       connection,
-      (wallet as any) || {
-        publicKey: web3.PublicKey.default,
-        signTransaction: async () => {},
-        signAllTransactions: async () => {},
-      },
+      wallet as unknown as AnchorProvider["wallet"],
       { commitment: "confirmed" }
     );
     return new Program(IDL as Idl, provider) as unknown as Program<Gossip>;
   }, [connection, wallet]);
 
   useEffect(() => {
-    const fetchMarket = async () => {
-      if (!program) return;
+    if (!program) return;
+
+    const syncMarket = async () => {
       try {
         const [marketPda] = web3.PublicKey.findProgramAddressSync(
           [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
           program.programId
         );
-        const marketAccount = await program.account.market.fetch(marketPda);
-        setMu(marketAccount.mu);
-        setSigma(marketAccount.sigma);
-        setLiquidity(marketAccount.totalLiquidity.toNumber());
-        setError(null);
-      } catch (err) {
-        setError("Using demo data — program connection unavailable");
+        const account = await program.account.market.fetch(marketPda) as MarketAccount;
+        setMu(account.mu);
+        setSigma(account.sigma);
+        setLiquidity(account.totalLiquidity.toNumber());
+        setTicketError(null);
+      } catch {
+        setTicketError("Using demo market state while the onchain market is unavailable.");
       }
     };
-    fetchMarket();
-    const interval = setInterval(fetchMarket, 5000);
-    return () => clearInterval(interval);
+
+    const timeoutId = window.setTimeout(() => void syncMarket(), 0);
+    const intervalId = window.setInterval(() => void syncMarket(), 7000);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.clearInterval(intervalId);
+    };
   }, [program]);
 
-  const handleBet = async () => {
-    const val = parseFloat(betValue);
-    if (isNaN(val)) return;
+  const bias = useMemo(() => {
+    const hash = Array.from(id).reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    return ((hash % 9) - 4) / 100;
+  }, [id]);
+  const agentMu = useMemo(() => mu * (1 + bias), [bias, mu]);
+  const agentSigma = useMemo(() => sigma * 0.82, [sigma]);
 
+  const parsedPrediction = useMemo(() => parseFloat(betValue), [betValue]);
+  const parsedStake = useMemo(() => parseFloat(stakeAmount), [stakeAmount]);
+
+  const impliedMultiplier = useMemo(() => {
+    if (!Number.isFinite(parsedPrediction)) return 0;
+    const density =
+      (1 / (sigma * Math.sqrt(2 * Math.PI))) *
+      Math.exp(-0.5 * Math.pow((parsedPrediction - mu) / sigma, 2));
+    return Number((density * 100000).toFixed(1));
+  }, [mu, parsedPrediction, sigma]);
+
+  const potentialPayout = useMemo(() => {
+    if (!Number.isFinite(parsedStake)) return "0.00";
+    return (parsedStake * impliedMultiplier).toFixed(2);
+  }, [impliedMultiplier, parsedStake]);
+
+  const handleBet = async () => {
+    if (!Number.isFinite(parsedPrediction) || !Number.isFinite(parsedStake)) {
+      setTicketError("Enter a valid target and stake.");
+      return;
+    }
+
+    setPrediction(parsedPrediction);
     setIsBetting(true);
-    setPrediction(val);
+    setTicketError(null);
 
     if (!wallet.publicKey || !program) {
-      setTimeout(() => {
-        setMu((prev) => prev + (val - prev) * 0.05);
-        setLiquidity((prev) => prev + parseFloat(stakeAmount || "10"));
+      window.setTimeout(() => {
+        setMu((current) => current + (parsedPrediction - current) * 0.04);
+        setLiquidity((current) => current + parsedStake);
         setIsBetting(false);
-        showToast("Prediction placed successfully!", "success");
-      }, 1200);
+        showToast("success", "Demo position submitted.");
+      }, 900);
       return;
     }
 
@@ -121,270 +140,296 @@ export default function MarketDetailPage() {
         [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
         program.programId
       );
-      
-      const marketState = await program.account.market.fetch(marketPda);
-      const mint = marketState.mint as web3.PublicKey;
-      
+
+      const marketState = await program.account.market.fetch(marketPda) as MarketAccount;
       const [vaultPda] = web3.PublicKey.findProgramAddressSync(
         [Buffer.from("vault"), Buffer.from(MARKET_TITLE)],
         program.programId
       );
-
-      // Use timestamp as a unique prediction ID
       const predictionId = new BN(Date.now());
-
       const [predictionPda] = web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("prediction"),
           marketPda.toBuffer(),
           wallet.publicKey.toBuffer(),
-          predictionId.toArrayLike(Buffer, "le", 8)
+          predictionId.toArrayLike(Buffer, "le", 8),
         ],
         program.programId
       );
-
-      // Get user's associated token account
       const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
-      const userTokenAccount = getAssociatedTokenAddressSync(mint, wallet.publicKey);
+      const userTokenAccount = getAssociatedTokenAddressSync(marketState.mint, wallet.publicKey);
 
-      await program.methods
-        .placePrediction(predictionId, val, new BN(parseFloat(stakeAmount) * 1e6)) // Adjusted for USDC/CASH 6 decimals
+      const placePrediction = program.methods.placePrediction(
+        predictionId,
+        parsedPrediction,
+        new BN(parsedStake * 1e6)
+      ) as unknown as RpcMethodBuilder;
+
+      await placePrediction
         .accounts({
           market: marketPda,
           prediction: predictionPda,
           user: wallet.publicKey,
-          userTokenAccount: userTokenAccount,
+          userTokenAccount,
           vault: vaultPda,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: web3.SystemProgram.programId,
-        } as any)
+        })
         .rpc();
 
-      const updatedMarket = await program.account.market.fetch(marketPda);
-      setMu(updatedMarket.mu);
-      setLiquidity(updatedMarket.totalLiquidity.toNumber());
-      setError(null);
-      showToast("Prediction placed successfully!", "success");
-    } catch (err) {
-      setError("Transaction failed. Please try again.");
-      showToast("Failed to place prediction. Please try again.", "error");
+      const updated = await program.account.market.fetch(marketPda) as MarketAccount;
+      setMu(updated.mu);
+      setLiquidity(updated.totalLiquidity.toNumber());
+      showToast("success", "Onchain position submitted.");
+    } catch {
+      setTicketError("Transaction failed. Check wallet approvals and try again.");
+      showToast("error", "Failed to place prediction.");
     } finally {
       setIsBetting(false);
     }
   };
 
-  const impliedMultiplier = useMemo(() => {
-    if (!prediction) return 0;
-    const density =
-      (1 / (sigma * Math.sqrt(2 * Math.PI))) *
-      Math.exp(-0.5 * Math.pow((prediction - mu) / sigma, 2));
-    return (density * 100000).toFixed(1);
-  }, [mu, sigma, prediction]);
-
-  const potentialPayout = useMemo(() => {
-    const stake = parseFloat(stakeAmount || "10");
-    return (stake * parseFloat(impliedMultiplier || "0")).toFixed(2);
-  }, [stakeAmount, impliedMultiplier]);
-
   return (
-    <div className="min-h-screen px-4 pb-20">
-      <div className="max-w-7xl mx-auto pt-6">
-        {/* Back */}
-        <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="mb-6">
-          <Link href="/markets" className="inline-flex items-center gap-2 text-sm hover:text-white transition-colors" style={{ color: "#999999" }}>
-            <ArrowLeft className="w-4 h-4" /> Back to Markets
+    <div className="px-4 pb-10">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <div>
+          <Link href="/markets" className="inline-flex items-center gap-2 text-sm text-[#8fa4c2] hover:text-white">
+            <ArrowLeft className="h-4 w-4" />
+            Back to markets
           </Link>
-        </motion.div>
+        </div>
 
-        {/* Header */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }} className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>{marketInfo.category}</span>
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-white mb-3">{marketInfo.title}</h1>
-          <p className="max-w-2xl" style={{ color: "#999999" }}>
-            Predict the exact outcome upon resolution. This continuous distribution market uses Gaussian AMM with LMSR pricing.
-          </p>
-        </motion.div>
-
-        {/* Stats Row */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }} 
-          animate={{ opacity: 1, y: 0 }} 
-          transition={{ duration: 0.6, delay: 0.1 }} 
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
-        >
-          {[
-            { label: "Market Mean (μ)", value: mu.toFixed(2), detail: "Consensus" },
-            { label: "Std Deviation (σ)", value: sigma.toFixed(2), detail: "Volatility" },
-            { label: "Liquidity Locked", value: `${(liquidity / 1e6).toFixed(2)}M`, detail: "CASH" },
-            { label: "Active Yield", value: "12.4%", detail: "Reflect rCASH" },
-          ].map((stat, i) => (
-            <div key={stat.label} className="p-6 relative overflow-hidden group" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.15)" }}>
-              <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-red-500/10 transition-colors" />
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: "#666" }}>{stat.label}</p>
-              <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-black text-white tracking-tighter">{stat.value}</p>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/60">{stat.detail}</span>
-              </div>
+        <section className="grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="surface-strong rounded-[28px] p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="pill pill-positive">{meta.status}</span>
+              <span className="pill">{meta.category}</span>
+              <span className="pill">
+                <ShieldCheck className="h-3.5 w-3.5 text-[#4da3ff]" />
+                {meta.resolutionSource}
+              </span>
             </div>
-          ))}
-        </motion.div>
+            <h1 className="mt-5 text-4xl font-semibold text-white">{meta.title}</h1>
+            <p className="mt-3 max-w-3xl text-base leading-relaxed text-[#9cb0ca]">{meta.subtitle}</p>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {/* Left Column: Chart & Insights */}
-          <div className="lg:col-span-2 space-y-3">
-            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="p-6 sm:p-8" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-lg font-semibold text-white">Market Distribution</h2>
-                <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#999999" }}>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#E31837" }} /> Human Consensus</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#3B82F6" }} /> Agent Consensus</span>
-                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#22C55E" }} /> Your Bet</span>
+            <div className="mt-8 grid gap-4 sm:grid-cols-4">
+              {[
+                { label: "Consensus", value: `${meta.unit}${mu.toFixed(2)}`, detail: meta.outcomeLabel },
+                { label: "24h change", value: formatPercent(meta.change24h), detail: "Versus prior session" },
+                { label: "Open liquidity", value: formatCompactCurrency(liquidity), detail: "Market depth" },
+                { label: "Resolution", value: meta.resolutionLabel, detail: meta.resolutionSource },
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                  <p className="metric-label">{stat.label}</p>
+                  <p className="mt-2 text-lg font-semibold text-white">{stat.value}</p>
+                  <p className="mt-2 text-xs text-[#8fa4c2]">{stat.detail}</p>
                 </div>
-              </div>
-              <div className="w-full h-[350px] sm:h-[400px]">
-                <BellCurve mu={mu} sigma={sigma} prediction={prediction} agentMu={agentMu} agentSigma={agentSigma} />
-              </div>
-            </motion.div>
+              ))}
+            </div>
+          </motion.div>
 
-            {/* AI Insights Block */}
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }} className="p-6" style={{ background: "rgba(59, 130, 246, 0.03)", border: "1px solid rgba(59, 130, 246, 0.15)" }}>
-              <div className="flex items-center gap-2 mb-4">
-                <Activity className="w-4 h-4 text-blue-400" />
-                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">GOSSIP AI: Market Reasoning</h3>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="surface rounded-[28px] p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Agent skew</p>
+                <h2 className="section-title mt-2">Machine consensus</h2>
               </div>
-              <p className="text-xs text-neutral-400 leading-relaxed italic">
-                "Consensus model indicates a high-probability divergence in {marketInfo.category} sentiment. 
-                Agents are currently weighting the 'Long Tail' outcomes 14% higher than historical human norms 
-                due to live social trends on X regarding {marketInfo.title.split(' ')[1]} infrastructure."
-              </p>
-            </motion.div>
-          </div>
-
-          {/* Trading Panel */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.3 }} className="p-8 flex flex-col" style={{ background: "#0D0202", border: "1px solid rgba(227,24,55,0.25)" }}>
-            <div className="flex items-center gap-2 mb-8">
-              <Zap className="w-4 h-4 text-red-500" />
-              <h2 className="text-sm font-bold text-white uppercase tracking-[0.3em]">Execution Terminal</h2>
+              <Bot className="h-5 w-5 text-[#4da3ff]" />
             </div>
 
-            {error && (
-              <div className="mb-6 p-4 text-xs font-bold uppercase tracking-wider" style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.2)", color: "#EAB308" }}>{error}</div>
-            )}
-
-            {/* AI Sentiment Signal */}
-            <div className="mb-8 p-4 bg-blue-500/5 border border-blue-500/20">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <Bot className="w-3.5 h-3.5 text-blue-400" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">AI Sentiment Signal</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
-                  <span className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">Processing...</span>
-                </div>
-              </div>
-              <div className="flex justify-between items-end">
+            <div className="mt-5 rounded-2xl border border-white/8 bg-[#091523] p-5">
+              <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-[10px] font-bold text-white mb-1 uppercase tracking-tight">
-                    Agents are {agentMu > mu ? "Higher" : "Lower"}
-                  </p>
-                  <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">
-                    {(Math.abs(agentMu - mu) / mu * 100).toFixed(2)}% deviation from human consensus
+                  <p className="metric-label">Agent fair value</p>
+                  <p className="text-3xl font-semibold text-white">
+                    {meta.unit}
+                    {agentMu.toFixed(2)}
                   </p>
                 </div>
-                <div className="text-right">
-                  <p className={`text-sm font-black ${agentMu > mu ? "text-green-400" : "text-red-400"} uppercase italic tracking-tighter`}>
-                    {agentMu > mu ? "OVERWEIGHT" : "UNDERWEIGHT"}
-                  </p>
+                <span className={`pill ${agentMu >= mu ? "pill-positive" : "pill-negative"}`}>
+                  {agentMu >= mu ? "Above crowd" : "Below crowd"}
+                </span>
+              </div>
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-white/8 bg-white/3 p-3">
+                  <p className="metric-label">Deviation</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{formatPercent(((agentMu - mu) / mu) * 100, 2)}</p>
+                </div>
+                <div className="rounded-xl border border-white/8 bg-white/3 p-3">
+                  <p className="metric-label">Agent sigma</p>
+                  <p className="mt-1 text-lg font-semibold text-white">{agentSigma.toFixed(2)}</p>
                 </div>
               </div>
+              <p className="mt-4 text-sm leading-relaxed text-[#8fa4c2]">
+                Agent models are {agentMu >= mu ? "pricing a stronger upside scenario" : "more conservative than the crowd"}.
+                Use this panel to compare discretionary conviction against machine flow before sending the order.
+              </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="mt-5 rounded-2xl border border-white/8 bg-white/3 p-4 text-sm text-[#8fa4c2]">
+              <div className="flex items-start gap-2">
+                <Info className="mt-0.5 h-4 w-4 text-[#ffb547]" />
+                <p>
+                  {ticketError ?? "Live wallet mode will use the Solana program. If that path is unavailable, the UI falls back to demo market state so the experience stays testable."}
+                </p>
+              </div>
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.18fr_0.82fr]">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }} className="surface rounded-[28px] p-6">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 block" style={{ color: "#666" }}>Prediction Target</label>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors pointer-events-none" />
-                  <span className="absolute left-5 top-1/2 -translate-y-1/2 font-mono text-red-500/50">$</span>
-                  <input type="number" value={betValue} onChange={(e) => setBetValue(e.target.value)} className="w-full pl-10 pr-4 py-5 text-2xl font-black text-white focus:outline-none transition-all" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)" }} />
+                <p className="section-kicker">Distribution</p>
+                <h2 className="section-title mt-2">Human vs agent pricing</h2>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="pill"><span className="h-2 w-2 rounded-full bg-[#19c37d]" /> Your target</span>
+                <span className="pill"><span className="h-2 w-2 rounded-full bg-[#4da3ff]" /> Agent mean</span>
+                <span className="pill"><span className="h-2 w-2 rounded-full bg-[#19c37d]" /> Human mean</span>
+              </div>
+            </div>
+            <div className="mt-6 h-[390px]">
+              <BellCurve
+                mu={mu}
+                sigma={sigma}
+                prediction={prediction}
+                agentMu={agentMu}
+                agentSigma={agentSigma}
+              />
+            </div>
+          </motion.div>
+
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18 }} className="surface rounded-[28px] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Execution ticket</p>
+                <h2 className="section-title mt-2">Place a position</h2>
+              </div>
+              <Zap className="h-5 w-5 text-[#19c37d]" />
+            </div>
+
+            <div className="mt-6 space-y-5">
+              <div>
+                <label className="metric-label">Prediction target</label>
+                <div className="relative mt-2">
+                  {meta.unit && (
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-[#8fa4c2]">
+                      {meta.unit}
+                    </span>
+                  )}
+                  <input
+                    type="number"
+                    value={betValue}
+                    onChange={(event) => setBetValue(event.target.value)}
+                    className={`trading-input ${meta.unit ? "pl-8" : ""}`}
+                  />
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-3">
-                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#666" }}>Stake Amount</label>
-                  <span className="text-[10px] font-mono font-bold" style={{ color: "#444" }}>BAL: 5,000 CASH</span>
+                <div className="flex items-center justify-between">
+                  <label className="metric-label">Stake amount</label>
+                  <span className="text-xs text-[#8fa4c2]">Balance: {balance.toLocaleString()} CASH</span>
                 </div>
-                <div className="relative group">
-                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors pointer-events-none" />
-                  <input type="number" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} className="w-full px-5 py-5 text-2xl font-black text-white focus:outline-none transition-all" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)" }} />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
-                    <button className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.05)" }}>MAX</button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Calculations */}
-              <div className="p-6 space-y-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Implied Odds</span>
-                  <span className="font-mono text-sm font-bold text-white">{impliedMultiplier ? `${impliedMultiplier}x` : "—"}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Protocol Fee</span>
-                  <span className="font-mono text-sm font-bold text-white">0.5%</span>
-                </div>
-                <div className="pt-4 flex justify-between items-end" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-                  <div>
-                    <span className="text-[9px] font-black uppercase tracking-[0.2em] block mb-1 text-red-500">Max Payout</span>
-                    <span className="font-mono text-3xl font-black text-white leading-none">{potentialPayout}</span>
-                  </div>
-                  <span className="text-[10px] font-bold text-neutral-600 mb-1">CASH</span>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="number"
+                    value={stakeAmount}
+                    onChange={(event) => setStakeAmount(event.target.value)}
+                    className="trading-input"
+                  />
+                  <button
+                    onClick={() => setStakeAmount(String(balance))}
+                    className="rounded-xl border border-white/10 bg-white/4 px-4 text-sm font-medium text-white"
+                  >
+                    Max
+                  </button>
                 </div>
               </div>
 
-              <button onClick={() => setShowModal(true)} disabled={isBetting} className="w-full py-6 font-black text-white uppercase tracking-[0.3em] text-xs transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 flex justify-center items-center gap-3 shadow-[0_0_30px_rgba(227,24,55,0.2)]" style={{ background: "#E31837" }}>
-                {isBetting ? <><Activity className="w-4 h-4 animate-spin" /> Transacting...</> : <>Lock Position <ArrowRight className="w-4 h-4" /></>}
+              <div className="rounded-2xl border border-white/8 bg-[#091523] p-5">
+                <div className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-[#8fa4c2]">Implied multiplier</span>
+                  <span className="font-mono text-white">{impliedMultiplier.toFixed(1)}x</span>
+                </div>
+                <div className="flex items-center justify-between py-2 text-sm">
+                  <span className="text-[#8fa4c2]">Protocol fee</span>
+                  <span className="font-mono text-white">0.5%</span>
+                </div>
+                <div className="flex items-center justify-between border-t border-white/8 pt-4 text-sm">
+                  <span className="text-[#8fa4c2]">Potential payout</span>
+                  <span className="font-mono text-xl font-semibold text-white">{potentialPayout} CASH</span>
+                </div>
+              </div>
+
+              {ticketError && (
+                <div className="rounded-2xl border border-[#ffb547]/25 bg-[#ffb547]/8 px-4 py-3 text-sm text-[#ffd494]">
+                  {ticketError}
+                </div>
+              )}
+
+              <button
+                onClick={() => setShowModal(true)}
+                disabled={isBetting}
+                className="trading-button trading-button-primary w-full px-4 py-3 disabled:opacity-60"
+              >
+                {isBetting ? (
+                  <>
+                    <Activity className="h-4 w-4 animate-spin" />
+                    Submitting
+                  </>
+                ) : (
+                  <>
+                    Review position
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
               </button>
             </div>
           </motion.div>
-        </div>
+        </section>
 
-        {/* Market Details */}
-        <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.4 }} className="mt-3 p-6 sm:p-8" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-          <h3 className="text-lg font-semibold text-white mb-6 uppercase tracking-wide">Market Information</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-            {[
-              { label: "Resolution Source", value: "AI Judge Committee" },
-              { label: "Resolution Date", value: "May 8, 2026, 12:00 PM UTC" },
-              { label: "Settlement Token", value: "Phantom CASH" },
-              { label: "Automated Trading", value: "Enabled (MCP Available)" },
-              { label: "LMSR Parameter (b)", value: "1,000" },
-              { label: "Fee Structure", value: "0.5% Protocol + 0.1% Creator" },
-            ].map((item) => (
-              <div key={item.label} className="flex justify-between py-3" style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}>
-                <span className="text-sm" style={{ color: "#999999" }}>{item.label}</span>
-                <span className="text-sm font-medium text-white flex items-center gap-1.5">
-                  {item.value}
-                  {item.label === "Resolution Source" && <CheckCircle2 className="w-3.5 h-3.5" style={{ color: "#22C55E" }} />}
-                </span>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+        <section className="grid gap-6 lg:grid-cols-3">
+          {[
+            {
+              title: "Resolution",
+              body: meta.resolutionSource,
+              detail: meta.resolutionLabel,
+            },
+            {
+              title: "Why this market",
+              body: "Continuous contracts let you trade exact values instead of only yes/no outcomes.",
+              detail: `${meta.participation} active participants`,
+            },
+            {
+              title: "Agentic edge",
+              body: "Deployers can pipe models into the agent surface and compare flow against discretionary tickets.",
+              detail: "Deploy path available from the Agents tab",
+            },
+          ].map((card) => (
+            <div key={card.title} className="surface rounded-[24px] p-5">
+              <p className="section-kicker">{card.title}</p>
+              <p className="mt-3 text-sm leading-relaxed text-white">{card.body}</p>
+              <p className="mt-3 text-xs text-[#8fa4c2]">{card.detail}</p>
+            </div>
+          ))}
+        </section>
 
         {showModal && (
           <TradingModal
             isOpen={showModal}
             onClose={() => setShowModal(false)}
             onConfirm={handleBet}
-            prediction={parseFloat(betValue)}
-            stake={parseFloat(stakeAmount)}
-            multiplier={String(impliedMultiplier)}
+            prediction={Number.isFinite(parsedPrediction) ? parsedPrediction : meta.consensus}
+            stake={Number.isFinite(parsedStake) ? parsedStake : 0}
+            multiplier={impliedMultiplier.toFixed(1)}
             potentialPayout={potentialPayout}
             balance={balance}
           />

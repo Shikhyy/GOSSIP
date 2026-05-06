@@ -1,351 +1,304 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
-  TrendingUp,
-  Activity,
-  Clock,
   ArrowRight,
+  Bot,
+  Funnel,
+  PlusCircle,
   Search,
-  Filter,
-  Plus,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import {
+  formatCompactCurrency,
+  formatPercent,
+  liveAgentActivity,
+  markets,
+  type MarketCategory,
+} from "@/lib/demo-data";
 
-const markets = [
-  {
-    id: "sol-price",
-    title: "Will SOL hit $250 by Friday?",
-    category: "Crypto",
-    mu: 198.42,
-    sigma: 24.5,
-    liquidity: 124500,
-    volume: 890000,
-    status: "live",
-    endsIn: "2d 14h",
-    color: "from-purple-500/20 to-cyan-500/20",
-    trending: true,
-  },
-  {
-    id: "firedancer-outage",
-    title: "Solana Firedancer: First Mainnet Outage within 30 days?",
-    category: "Crypto",
-    mu: 5,
-    sigma: 10,
-    liquidity: 45000,
-    volume: 120000,
-    status: "live",
-    endsIn: "28d",
-    color: "from-blue-500/20 to-indigo-500/20",
-    aiGenerated: true,
-  },
-  {
-    id: "gpt-5-mmlu",
-    title: "GPT-5.5 MMLU Score surpassing 95%?",
-    category: "AI",
-    mu: 95.2,
-    sigma: 1.5,
-    liquidity: 89000,
-    volume: 340000,
-    status: "live",
-    endsIn: "15d",
-    color: "from-cyan-500/20 to-blue-500/20",
-    aiGenerated: true,
-    trending: true,
-  },
-  {
-    id: "btc-etf",
-    title: "BTC ETF Inflows Next Week ($M)",
-    category: "Finance",
-    mu: 450.0,
-    sigma: 120.0,
-    liquidity: 67800,
-    volume: 420000,
-    status: "live",
-    endsIn: "5d 8h",
-    color: "from-amber-500/20 to-orange-500/20",
-  },
-  {
-    id: "nyc-temp",
-    title: "NYC Temperature on Dec 31 (°F)",
-    category: "Weather",
-    mu: 38.5,
-    sigma: 8.2,
-    liquidity: 34500,
-    volume: 156000,
-    status: "live",
-    endsIn: "28d 12h",
-    color: "from-emerald-500/20 to-teal-500/20",
-  },
-  {
-    id: "fed-rate",
-    title: "Fed Funds Rate Decision (%)",
-    category: "Macro",
-    mu: 4.25,
-    sigma: 0.35,
-    liquidity: 234000,
-    volume: 1200000,
-    status: "live",
-    endsIn: "12d 6h",
-    color: "from-rose-500/20 to-pink-500/20",
-    trending: true,
-  },
+const categories: Array<MarketCategory | "All"> = [
+  "All",
+  "Crypto",
+  "Macro",
+  "AI",
+  "Weather",
+  "Sports",
+  "Politics",
 ];
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08, delayChildren: 0.2 },
-  },
-};
-
-const itemVariants = {
-  hidden: { y: 30, opacity: 0, scale: 0.95 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    scale: 1,
-    transition: { type: "spring" as const, stiffness: 120, damping: 22 },
-  },
-};
 
 export default function MarketsPage() {
   const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-
-  const categories = ["All", "Crypto", "Finance", "Weather", "Macro", "AI"];
+  const [selectedCategory, setSelectedCategory] = useState<MarketCategory | "All">("All");
 
   const filteredMarkets = useMemo(() => {
     return markets.filter((market) => {
-      const matchesSearch = market.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        market.category.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = selectedCategory === "All" || market.category === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesCategory =
+        selectedCategory === "All" || market.category === selectedCategory;
+      const normalizedSearch = searchTerm.trim().toLowerCase();
+      const matchesSearch =
+        normalizedSearch.length === 0 ||
+        market.title.toLowerCase().includes(normalizedSearch) ||
+        market.subtitle.toLowerCase().includes(normalizedSearch) ||
+        market.category.toLowerCase().includes(normalizedSearch);
+      return matchesCategory && matchesSearch;
     });
   }, [searchTerm, selectedCategory]);
 
+  const liveCount = markets.filter((market) => market.status === "live").length;
+  const volume = markets.reduce((sum, market) => sum + market.volume24h, 0);
+
   return (
-    <div className="min-h-screen px-4 pb-20">
-      <div className="max-w-6xl mx-auto pt-8">
-        {/* Featured Market Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12 relative overflow-hidden"
-        >
-          <div className="absolute inset-0 grid-bg opacity-10" />
-          <div className="relative p-10 lg:p-14" style={{ background: "linear-gradient(135deg, #1A0808 0%, #0D0202 100%)", border: "1px solid rgba(227,24,55,0.25)" }}>
-            <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 -mr-48 -mt-48" style={{ background: "radial-gradient(circle, #E31837 0%, transparent 70%)" }} />
-            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
-              <div>
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-px" style={{ background: "#E31837" }} />
-                  <span className="text-xs font-bold uppercase tracking-[0.4em]" style={{ color: "#E31837" }}>Active Arena</span>
-                </div>
-                <h1 className="text-5xl lg:text-7xl font-black text-white mb-6 tracking-tighter leading-none uppercase">
-                  Discover<br /><span className="gradient-red">Alpha</span>
-                </h1>
-                <p className="text-neutral-400 max-w-sm mb-8 leading-relaxed">
-                  Join the machine war. Predict continuous outcomes on Solana with mathematically infinite upside.
+    <div className="px-4 pb-10">
+      <div className="mx-auto max-w-7xl space-y-6">
+        <section className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="surface-strong rounded-[28px] p-6 sm:p-8"
+          >
+            <div className="flex flex-wrap items-center gap-3">
+              <span className="pill pill-positive">
+                <TrendingUp className="h-3.5 w-3.5" />
+                {liveCount} live markets
+              </span>
+              <span className="pill">
+                <Bot className="h-3.5 w-3.5 text-[#4da3ff]" />
+                Agent-linked market discovery
+              </span>
+            </div>
+            <h1 className="mt-6 text-4xl font-semibold text-white">Markets</h1>
+            <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#9cb0ca]">
+              Browse continuous contracts, filter by narrative cluster, and jump straight into a compact
+              order flow. The layout is designed for scanning like a trading product, not a landing page.
+            </p>
+
+            <div className="mt-8 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <p className="metric-label">24h market volume</p>
+                <p className="mt-2 text-2xl font-semibold text-white">{formatCompactCurrency(volume)}</p>
+                <p className="mt-2 text-sm text-[#19c37d]">{formatPercent(12.1)}</p>
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <p className="metric-label">Average participation</p>
+                <p className="mt-2 text-2xl font-semibold text-white">
+                  {Math.round(
+                    markets.reduce((sum, market) => sum + market.participation, 0) / markets.length
+                  )}
                 </p>
-                <Link href="/markets/create" className="group inline-flex items-center gap-3 px-8 py-4 text-xs font-bold uppercase tracking-widest text-white transition-all hover:scale-105" style={{ background: "#E31837" }}>
-                  <Plus className="w-4 h-4" /> Create New Market
-                </Link>
+                <p className="mt-2 text-sm text-[#8fa4c2]">Traders per market</p>
               </div>
-              <div className="flex items-center gap-12 pb-2">
-                <div>
-                  <p className="text-4xl font-black text-white mb-1 tracking-tight">$2.4M</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#666" }}>Total Volume</p>
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <p className="metric-label">Resolution cadence</p>
+                <p className="mt-2 text-2xl font-semibold text-white">Daily</p>
+                <p className="mt-2 text-sm text-[#8fa4c2]">Pyth, NOAA, official reports</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.08 }}
+            className="surface rounded-[28px] p-6"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Launch</p>
+                <h2 className="section-title mt-2">Create a new contract</h2>
+              </div>
+              <PlusCircle className="h-5 w-5 text-[#19c37d]" />
+            </div>
+            <p className="mt-4 text-sm leading-relaxed text-[#8fa4c2]">
+              Open a new market with AI-assisted idea sourcing, initial consensus inputs, and an execution-ready
+              resolution spec.
+            </p>
+            <Link href="/markets/create" className="trading-button trading-button-primary mt-6 w-full px-4 py-3">
+              Create market
+              <ArrowRight className="h-4 w-4" />
+            </Link>
+
+            <div className="mt-6 space-y-3">
+              {liveAgentActivity.slice(0, 2).map((item) => (
+                <div key={`${item.agent}-${item.market}`} className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium text-white">{item.agent}</p>
+                    <span className="text-xs text-[#8fa4c2]">{item.timestamp}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-[#d7e5fa]">{item.market}</p>
+                  <p className="mt-2 text-xs leading-relaxed text-[#8fa4c2]">{item.action}</p>
                 </div>
-                <div>
-                  <p className="text-4xl font-black text-white mb-1 tracking-tight">18</p>
-                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#666" }}>Live Markets</p>
+              ))}
+            </div>
+          </motion.div>
+        </section>
+
+        <section className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="space-y-5">
+            <div className="surface rounded-[28px] p-5">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div className="relative flex-1">
+                  <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-[#8fa4c2]" />
+                  <input
+                    value={searchTerm}
+                    onChange={(event) => setSearchTerm(event.target.value)}
+                    className="trading-input pl-11"
+                    placeholder="Search by contract, category, or narrative"
+                  />
+                </div>
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  <div className="pill">
+                    <Funnel className="h-3.5 w-3.5 text-[#4da3ff]" />
+                    Filter
+                  </div>
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      onClick={() => setSelectedCategory(category)}
+                      className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                        selectedCategory === category
+                          ? "bg-[#19c37d] text-[#03120b]"
+                          : "bg-white/4 text-[#d7e5fa] hover:bg-white/8"
+                      }`}
+                    >
+                      {category}
+                    </button>
+                  ))}
                 </div>
               </div>
             </div>
-          </div>
-        </motion.div>
 
-        {/* Machine War: AI Agent Activity */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.6, delay: 0.3 }}
-          className="mb-10 p-6"
-          style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.2)" }}
-        >
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-3">
-              <Activity className="w-5 h-5 text-[#E31837]" />
-              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white">The Machine War: Live Agent Activity</h2>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">47 Agents Active</span>
-            </div>
-          </div>
-          <div className="space-y-3">
-            {[
-              { agent: "LSTM-v1_arb", action: "Placed 450 CASH bet on SOL @ $212.50", time: "2m ago", confidence: "89%" },
-              { agent: "GPT4_sentiment", action: "Shifted consensus mu by +1.2 on 'Fed Rate'", time: "5m ago", confidence: "74%" },
-              { agent: "BlackSwan_detector", action: "Detected 3-sigma anomaly in 'NYC Temp'", time: "12m ago", confidence: "92%" },
-            ].map((log, i) => (
-              <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
-                <div className="flex items-center gap-4">
-                  <span className="font-mono text-[10px] px-2 py-0.5 bg-white/5 text-white/50">{log.agent}</span>
-                  <span className="text-xs text-white/80">{log.action}</span>
-                </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-bold text-[#E31837]">CONF: {log.confidence}</span>
-                  <span className="text-[10px] uppercase text-white/30">{log.time}</span>
-                </div>
+            {filteredMarkets.length === 0 ? (
+              <EmptyState type="search" searchTerm={searchTerm} />
+            ) : (
+              <div className="grid gap-4">
+                {filteredMarkets.map((market, index) => (
+                  <motion.div
+                    key={market.id}
+                    initial={{ opacity: 0, y: 18 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.04 }}
+                  >
+                    <Link href={`/market/${market.id}`} className="surface block rounded-[24px] p-5 hover:bg-white/[0.04]">
+                      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={`pill ${
+                              market.status === "live"
+                                ? "pill-positive"
+                                : market.status === "resolving"
+                                  ? ""
+                                  : "pill-negative"
+                            }`}>
+                              {market.status}
+                            </span>
+                            <span className="pill">{market.category}</span>
+                            {market.featured && (
+                              <span className="pill">
+                                <Sparkles className="h-3.5 w-3.5 text-[#ffb547]" />
+                                Featured
+                              </span>
+                            )}
+                          </div>
+                          <h2 className="mt-4 text-xl font-semibold text-white">{market.title}</h2>
+                          <p className="mt-2 max-w-3xl text-sm leading-relaxed text-[#8fa4c2]">{market.subtitle}</p>
+                        </div>
+
+                        <div className="grid min-w-[280px] gap-3 sm:grid-cols-2 xl:min-w-[380px] xl:grid-cols-4">
+                          <div className="rounded-2xl border border-white/8 bg-white/3 p-3">
+                            <p className="metric-label">Consensus</p>
+                            <p className="mt-2 text-lg font-semibold text-white">
+                              {market.unit}
+                              {market.consensus}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-white/8 bg-white/3 p-3">
+                            <p className="metric-label">24h</p>
+                            <p className={`mt-2 text-lg font-semibold ${market.change24h >= 0 ? "text-[#19c37d]" : "text-[#ff5f6d]"}`}>
+                              {formatPercent(market.change24h)}
+                            </p>
+                          </div>
+                          <div className="rounded-2xl border border-white/8 bg-white/3 p-3">
+                            <p className="metric-label">Liquidity</p>
+                            <p className="mt-2 text-lg font-semibold text-white">{formatCompactCurrency(market.liquidity)}</p>
+                          </div>
+                          <div className="rounded-2xl border border-white/8 bg-white/3 p-3">
+                            <p className="metric-label">Resolve</p>
+                            <p className="mt-2 text-sm font-medium text-white">{market.resolutionLabel}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-white/8 pt-4">
+                        <div className="flex flex-wrap gap-5 text-sm">
+                          <span className="text-[#8fa4c2]">
+                            Outcome: <span className="text-white">{market.outcomeLabel}</span>
+                          </span>
+                          <span className="text-[#8fa4c2]">
+                            Participants: <span className="text-white">{market.participation}</span>
+                          </span>
+                          <span className="text-[#8fa4c2]">
+                            Source: <span className="text-white">{market.resolutionSource}</span>
+                          </span>
+                        </div>
+                        <span className="inline-flex items-center gap-2 text-sm text-[#4da3ff]">
+                          Open ticket
+                          <ArrowRight className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </Link>
+                  </motion.div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
-        </motion.div>
 
-        {/* Filters */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="flex flex-col sm:flex-row gap-4 mb-8"
-        >
-          <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#E31837" }} />
-            <input
-              type="text"
-              placeholder="Filter by title, category, or agent..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 text-xs font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:outline-none transition-all"
-              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
-            />
-          </div>
-          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
-            {categories.map((cat, i) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
-                className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap"
-                style={{
-                  background: selectedCategory === cat ? "#E31837" : "rgba(255,255,255,0.03)",
-                  color: "#FFFFFF",
-                  border: selectedCategory === cat ? "1px solid #E31837" : "1px solid rgba(255,255,255,0.08)",
-                }}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Market Grid */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"
-        >
-          {filteredMarkets.map((market, i) => (
-            <motion.div key={market.id} variants={itemVariants}>
-              <Link href={`/market/${market.id}`}>
-                <div
-                  className="group cursor-pointer transition-all hover:border-[rgba(227,24,55,0.4)] hover:scale-[1.01] h-full flex flex-col p-6"
-                  style={{
-                    background: i % 3 === 1 ? "#4A0404" : "#1A0808",
-                    border: "1px solid rgba(227,24,55,0.1)",
-                  }}
-                >
-                  {/* Top Row */}
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex gap-2">
-                      <span
-                        className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider"
-                        style={{
-                          background: market.status === "live" ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)",
-                          color: market.status === "live" ? "#22C55E" : "#EAB308",
-                        }}
-                      >
-                        {market.status === "live" ? "LIVE" : "UPCOMING"}
+          <aside className="space-y-6">
+            <div className="surface rounded-[28px] p-6">
+              <p className="section-kicker">Flow cues</p>
+              <h2 className="section-title mt-2">What traders are watching</h2>
+              <div className="mt-5 space-y-3">
+                {markets.slice(0, 3).map((market) => (
+                  <div key={market.id} className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-white">{market.title}</p>
+                      <span className={`text-sm font-semibold ${market.change24h >= 0 ? "text-[#19c37d]" : "text-[#ff5f6d]"}`}>
+                        {formatPercent(market.change24h)}
                       </span>
-                      {(market as any).aiGenerated && (
-                        <span className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
-                          AI GENERATED
-                        </span>
-                      )}
-                      {(market as any).trending && (
-                        <span className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
-                          TRENDING
-                        </span>
-                      )}
                     </div>
-                    <span className="text-xs flex items-center gap-1" style={{ color: "#999999" }}>
-                      <Clock className="w-3 h-3" /> {market.endsIn}
-                    </span>
+                    <p className="mt-2 text-xs text-[#8fa4c2]">
+                      {market.agentBias === "bullish"
+                        ? "Agents skew above crowd consensus."
+                        : market.agentBias === "bearish"
+                          ? "Agents are leaning into downside tails."
+                          : "Agent flow is roughly aligned with market mean."}
+                    </p>
                   </div>
+                ))}
+              </div>
+            </div>
 
-                  {/* Category */}
-                  <p className="text-[10px] font-bold uppercase tracking-[0.15em] mb-2" style={{ color: "#E31837" }}>
-                    {market.category}
-                  </p>
-
-                  {/* Title */}
-                  <h3 className="text-base font-semibold text-white mb-4 group-hover:text-[#E31837] transition-colors leading-snug">
-                    {market.title}
-                  </h3>
-
-                  {/* Mini Bell Curve — Red tones */}
-                  <div className="flex-1 mb-4 relative h-14 overflow-hidden" style={{ background: "rgba(227,24,55,0.03)", border: "1px solid rgba(227,24,55,0.06)" }}>
-                    <svg viewBox="0 0 200 60" className="w-full h-full" preserveAspectRatio="none">
-                      <path
-                        d={(() => { const mu=100; const sigma=35; let d="M 0 60"; for(let x=0;x<=200;x+=2){ const y=55-45*Math.exp(-0.5*Math.pow((x-mu)/sigma,2)); d+=` L ${x} ${y}`; } d+=" L 200 60 Z"; return d; })()}
-                        fill="url(#redBell)"
-                        stroke="#E31837"
-                        strokeWidth="1.2"
-                        opacity="0.7"
-                      />
-                      <defs>
-                        <linearGradient id="redBell" x1="0%" y1="0%" x2="0%" y2="100%">
-                          <stop offset="0%" stopColor="#E31837" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#E31837" stopOpacity="0.02" />
-                        </linearGradient>
-                      </defs>
-                    </svg>
-                  </div>
-
-                  {/* Stats */}
-                  <div className="grid grid-cols-2 gap-3 mb-4">
-                    <div className="p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999999" }}>Consensus</p>
-                      <p className="text-sm font-mono font-semibold text-white">
-                        {market.category === "Weather" ? `${market.mu}°F` : market.category === "Macro" ? `${market.mu}%` : `$${market.mu.toLocaleString()}`}
-                      </p>
+            <div className="surface rounded-[28px] p-6">
+              <p className="section-kicker">Agent scan</p>
+              <div className="mt-4 space-y-3">
+                {liveAgentActivity.map((item) => (
+                  <div key={`${item.agent}-${item.timestamp}`} className="rounded-2xl border border-white/8 bg-[#091523] p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium text-white">{item.agent}</p>
+                      <span className="text-xs text-[#8fa4c2]">{item.confidence}%</span>
                     </div>
-                    <div className="p-3" style={{ background: "rgba(255,255,255,0.03)" }}>
-                      <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999999" }}>Liquidity</p>
-                      <p className="text-sm font-mono font-semibold text-white">{market.liquidity.toLocaleString()} CASH</p>
-                    </div>
+                    <p className="mt-2 text-sm text-[#d7e5fa]">{item.market}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-[#8fa4c2]">{item.action}</p>
                   </div>
-
-                  {/* CTA */}
-                  <div className="flex items-center justify-between mt-auto">
-                    <div className="flex items-center gap-1.5 text-xs" style={{ color: "#999999" }}>
-                      <TrendingUp className="w-3 h-3" />
-                      <span>${(market.volume / 1000).toFixed(0)}K vol</span>
-                    </div>
-                    <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1 group-hover:gap-2 transition-all" style={{ color: "#E31837" }}>
-                      Trade <ArrowRight className="w-3.5 h-3.5" />
-                    </span>
-                  </div>
-                </div>
-              </Link>
-            </motion.div>
-          ))}
-        </motion.div>
+                ))}
+              </div>
+            </div>
+          </aside>
+        </section>
       </div>
     </div>
   );
