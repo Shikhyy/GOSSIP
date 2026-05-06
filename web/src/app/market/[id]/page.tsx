@@ -51,6 +51,11 @@ export default function MarketDetailPage() {
   const [mu, setMu] = useState(hookMu);
   const [sigma, setSigma] = useState(hookSigma);
   const [liquidity, setLiquidity] = useState(hookLiquidity);
+  
+  // Mock Agent Sentiment Data
+  const agentMu = useMemo(() => mu * (1 + (Math.random() - 0.5) * 0.1), [mu]);
+  const agentSigma = useMemo(() => sigma * 0.8, [sigma]);
+
   const [prediction, setPrediction] = useState<number | undefined>(undefined);
   const [betValue, setBetValue] = useState("200");
   const [stakeAmount, setStakeAmount] = useState("10");
@@ -116,21 +121,41 @@ export default function MarketDetailPage() {
         [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
         program.programId
       );
+      
+      const marketState = await program.account.market.fetch(marketPda);
+      const mint = marketState.mint as web3.PublicKey;
+      
+      const [vaultPda] = web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("vault"), Buffer.from(MARKET_TITLE)],
+        program.programId
+      );
+
+      // Use timestamp as a unique prediction ID
+      const predictionId = new BN(Date.now());
+
       const [predictionPda] = web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("prediction"),
           marketPda.toBuffer(),
           wallet.publicKey.toBuffer(),
+          predictionId.toArrayLike(Buffer, "le", 8)
         ],
         program.programId
       );
 
+      // Get user's associated token account
+      const { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } = await import("@solana/spl-token");
+      const userTokenAccount = getAssociatedTokenAddressSync(mint, wallet.publicKey);
+
       await program.methods
-        .placePrediction(val, new BN(parseFloat(stakeAmount) * 1e9))
+        .placePrediction(predictionId, val, new BN(parseFloat(stakeAmount) * 1e6)) // Adjusted for USDC/CASH 6 decimals
         .accounts({
           market: marketPda,
           prediction: predictionPda,
           user: wallet.publicKey,
+          userTokenAccount: userTokenAccount,
+          vault: vaultPda,
+          tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: web3.SystemProgram.programId,
         } as any)
         .rpc();
@@ -184,89 +209,146 @@ export default function MarketDetailPage() {
         </motion.div>
 
         {/* Stats Row */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} 
+          animate={{ opacity: 1, y: 0 }} 
+          transition={{ duration: 0.6, delay: 0.1 }} 
+          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8"
+        >
           {[
-            { label: "Consensus (μ)", value: `$${mu.toFixed(2)}` },
-            { label: "Volatility (σ)", value: sigma.toFixed(2) },
-            { label: "Liquidity Locked", value: `${liquidity.toLocaleString()} CASH` },
-            { label: "Participants", value: "1,247" },
+            { label: "Market Mean (μ)", value: mu.toFixed(2), detail: "Consensus" },
+            { label: "Std Deviation (σ)", value: sigma.toFixed(2), detail: "Volatility" },
+            { label: "Liquidity Locked", value: `${(liquidity / 1e6).toFixed(2)}M`, detail: "CASH" },
+            { label: "Active Yield", value: "12.4%", detail: "Reflect rCASH" },
           ].map((stat, i) => (
-            <div key={stat.label} className="p-4" style={{ background: i === 1 ? "#4A0404" : "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-              <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: "#999999" }}>{stat.label}</p>
-              <p className="text-xl font-semibold font-mono text-white">{stat.value}</p>
+            <div key={stat.label} className="p-6 relative overflow-hidden group" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.15)" }}>
+              <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/5 blur-3xl -mr-16 -mt-16 group-hover:bg-red-500/10 transition-colors" />
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: "#666" }}>{stat.label}</p>
+              <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-white tracking-tighter">{stat.value}</p>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-red-500/60">{stat.detail}</span>
+              </div>
             </div>
           ))}
         </motion.div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-          {/* Chart */}
-          <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="lg:col-span-2 p-6 sm:p-8" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-semibold text-white">Market Distribution</h2>
-              <div className="flex items-center gap-4 text-xs" style={{ color: "#999999" }}>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5" style={{ background: "#E31837" }} /> Consensus</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5" style={{ background: "#22C55E" }} /> Your Bet</span>
+          {/* Left Column: Chart & Insights */}
+          <div className="lg:col-span-2 space-y-3">
+            <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.7, delay: 0.2 }} className="p-6 sm:p-8" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-semibold text-white">Market Distribution</h2>
+                <div className="flex items-center gap-4 text-[10px] font-bold uppercase tracking-widest" style={{ color: "#999999" }}>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#E31837" }} /> Human Consensus</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#3B82F6" }} /> Agent Consensus</span>
+                  <span className="flex items-center gap-1.5"><span className="w-2 h-2" style={{ background: "#22C55E" }} /> Your Bet</span>
+                </div>
               </div>
-            </div>
-            <div className="w-full h-[350px] sm:h-[400px]">
-              <BellCurve mu={mu} sigma={sigma} prediction={prediction} />
-            </div>
-          </motion.div>
+              <div className="w-full h-[350px] sm:h-[400px]">
+                <BellCurve mu={mu} sigma={sigma} prediction={prediction} agentMu={agentMu} agentSigma={agentSigma} />
+              </div>
+            </motion.div>
+
+            {/* AI Insights Block */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.4 }} className="p-6" style={{ background: "rgba(59, 130, 246, 0.03)", border: "1px solid rgba(59, 130, 246, 0.15)" }}>
+              <div className="flex items-center gap-2 mb-4">
+                <Activity className="w-4 h-4 text-blue-400" />
+                <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-400">GOSSIP AI: Market Reasoning</h3>
+              </div>
+              <p className="text-xs text-neutral-400 leading-relaxed italic">
+                "Consensus model indicates a high-probability divergence in {marketInfo.category} sentiment. 
+                Agents are currently weighting the 'Long Tail' outcomes 14% higher than historical human norms 
+                due to live social trends on X regarding {marketInfo.title.split(' ')[1]} infrastructure."
+              </p>
+            </motion.div>
+          </div>
 
           {/* Trading Panel */}
-          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.3 }} className="p-6" style={{ background: "#4A0404", border: "1px solid rgba(227,24,55,0.2)" }}>
-            <h2 className="text-lg font-semibold text-white mb-6 uppercase tracking-wide">Place Prediction</h2>
+          <motion.div initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.7, delay: 0.3 }} className="p-8 flex flex-col" style={{ background: "#0D0202", border: "1px solid rgba(227,24,55,0.25)" }}>
+            <div className="flex items-center gap-2 mb-8">
+              <Zap className="w-4 h-4 text-red-500" />
+              <h2 className="text-sm font-bold text-white uppercase tracking-[0.3em]">Execution Terminal</h2>
+            </div>
 
             {error && (
-              <div className="mb-4 p-3 text-sm" style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.2)", color: "#EAB308" }}>{error}</div>
+              <div className="mb-6 p-4 text-xs font-bold uppercase tracking-wider" style={{ background: "rgba(234,179,8,0.1)", border: "1px solid rgba(234,179,8,0.2)", color: "#EAB308" }}>{error}</div>
             )}
 
-            <div className="space-y-5">
+            {/* AI Sentiment Signal */}
+            <div className="mb-8 p-4 bg-blue-500/5 border border-blue-500/20">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <Bot className="w-3.5 h-3.5 text-blue-400" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">AI Sentiment Signal</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
+                  <span className="text-[8px] font-bold text-blue-400 uppercase tracking-widest">Processing...</span>
+                </div>
+              </div>
+              <div className="flex justify-between items-end">
+                <div>
+                  <p className="text-[10px] font-bold text-white mb-1 uppercase tracking-tight">
+                    Agents are {agentMu > mu ? "Higher" : "Lower"}
+                  </p>
+                  <p className="text-[9px] text-neutral-500 uppercase tracking-widest font-bold">
+                    {(Math.abs(agentMu - mu) / mu * 100).toFixed(2)}% deviation from human consensus
+                  </p>
+                </div>
+                <div className="text-right">
+                  <p className={`text-sm font-black ${agentMu > mu ? "text-green-400" : "text-red-400"} uppercase italic tracking-tighter`}>
+                    {agentMu > mu ? "OVERWEIGHT" : "UNDERWEIGHT"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-6">
               <div>
-                <label className="text-xs font-medium uppercase tracking-wider mb-2 block" style={{ color: "#C25B5B" }}>Prediction Price</label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 font-mono" style={{ color: "#999999" }}>$</span>
-                  <input type="number" value={betValue} onChange={(e) => setBetValue(e.target.value)} className="w-full pl-8 pr-4 py-3.5 text-lg font-mono text-white focus:outline-none transition-all" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(227,24,55,0.2)" }} />
+                <label className="text-[10px] font-bold uppercase tracking-[0.2em] mb-3 block" style={{ color: "#666" }}>Prediction Target</label>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors pointer-events-none" />
+                  <span className="absolute left-5 top-1/2 -translate-y-1/2 font-mono text-red-500/50">$</span>
+                  <input type="number" value={betValue} onChange={(e) => setBetValue(e.target.value)} className="w-full pl-10 pr-4 py-5 text-2xl font-black text-white focus:outline-none transition-all" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)" }} />
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between items-center mb-2">
-                  <label className="text-xs font-medium uppercase tracking-wider" style={{ color: "#C25B5B" }}>Stake Amount</label>
-                  <span className="text-xs font-mono" style={{ color: "#999999" }}>Bal: 5,000 CASH</span>
+                <div className="flex justify-between items-center mb-3">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em]" style={{ color: "#666" }}>Stake Amount</label>
+                  <span className="text-[10px] font-mono font-bold" style={{ color: "#444" }}>BAL: 5,000 CASH</span>
                 </div>
-                <div className="relative">
-                  <input type="number" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} className="w-full px-4 py-3.5 text-lg font-mono text-white focus:outline-none transition-all" style={{ background: "rgba(0,0,0,0.3)", border: "1px solid rgba(227,24,55,0.2)" }} />
-                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex gap-1">
-                    <button className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors" style={{ background: "rgba(255,255,255,0.05)" }}>MIN</button>
-                    <button className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-white/10 transition-colors" style={{ background: "rgba(255,255,255,0.05)" }}>MAX</button>
+                <div className="relative group">
+                  <div className="absolute inset-0 bg-red-500/5 group-hover:bg-red-500/10 transition-colors pointer-events-none" />
+                  <input type="number" value={stakeAmount} onChange={(e) => setStakeAmount(e.target.value)} className="w-full px-5 py-5 text-2xl font-black text-white focus:outline-none transition-all" style={{ background: "transparent", border: "1px solid rgba(255,255,255,0.08)" }} />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex gap-1">
+                    <button className="px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-white/40 hover:text-white transition-colors" style={{ background: "rgba(255,255,255,0.05)" }}>MAX</button>
                   </div>
                 </div>
               </div>
 
               {/* Calculations */}
-              <div className="p-4 space-y-3" style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(227,24,55,0.1)" }}>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "#999999" }}>Probability Density</span>
-                  <span className="font-mono text-white">{prediction ? ((1/(sigma*Math.sqrt(2*Math.PI)))*Math.exp(-0.5*Math.pow((prediction-mu)/sigma,2))).toExponential(4) : "—"}</span>
+              <div className="p-6 space-y-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)" }}>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Implied Odds</span>
+                  <span className="font-mono text-sm font-bold text-white">{impliedMultiplier ? `${impliedMultiplier}x` : "—"}</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "#999999" }}>Implied Multiplier</span>
-                  <span className="font-mono" style={{ color: "#22C55E" }}>{impliedMultiplier ? `${impliedMultiplier}x` : "—"}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">Protocol Fee</span>
+                  <span className="font-mono text-sm font-bold text-white">0.5%</span>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "#999999" }}>Network Fee</span>
-                  <span className="font-mono text-white">0.000005 SOL</span>
-                </div>
-                <div className="pt-3 flex justify-between items-center" style={{ borderTop: "1px solid rgba(227,24,55,0.15)" }}>
-                  <span className="font-semibold text-white">Potential Payout</span>
-                  <span className="font-mono font-bold text-lg text-white">{potentialPayout} CASH</span>
+                <div className="pt-4 flex justify-between items-end" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                  <div>
+                    <span className="text-[9px] font-black uppercase tracking-[0.2em] block mb-1 text-red-500">Max Payout</span>
+                    <span className="font-mono text-3xl font-black text-white leading-none">{potentialPayout}</span>
+                  </div>
+                  <span className="text-[10px] font-bold text-neutral-600 mb-1">CASH</span>
                 </div>
               </div>
 
-              <button onClick={handleBet} disabled={isBetting} className="w-full py-4 font-semibold text-white uppercase tracking-wider text-sm transition-all hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex justify-center items-center gap-2" style={{ background: "#E31837" }}>
-                {isBetting ? <span className="flex items-center gap-2"><Activity className="w-4 h-4 animate-spin" /> EXECUTING...</span> : "PLACE PREDICTION"}
+              <button onClick={() => setShowModal(true)} disabled={isBetting} className="w-full py-6 font-black text-white uppercase tracking-[0.3em] text-xs transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-30 flex justify-center items-center gap-3 shadow-[0_0_30px_rgba(227,24,55,0.2)]" style={{ background: "#E31837" }}>
+                {isBetting ? <><Activity className="w-4 h-4 animate-spin" /> Transacting...</> : <>Lock Position <ArrowRight className="w-4 h-4" /></>}
               </button>
             </div>
           </motion.div>
