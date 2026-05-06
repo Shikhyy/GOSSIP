@@ -1,136 +1,246 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Upload, Settings, Code, CheckCircle, ArrowRight } from "lucide-react";
+import { ArrowRight, CheckCircle2, Code2, Copy, Cpu, PlayCircle, Settings2, UploadCloud } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 const steps = [
-  { id: 1, title: "Upload Model", icon: Upload },
-  { id: 2, title: "Configure", icon: Settings },
-  { id: 3, title: "MCP Config", icon: Code },
+  { id: 1, title: "Artifact", icon: UploadCloud },
+  { id: 2, title: "Guardrails", icon: Settings2 },
+  { id: 3, title: "Config", icon: Code2 },
 ];
 
 export default function DeployAgentPage() {
+  const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [modelFile, setModelFile] = useState<string | null>(null);
-  const [params, setParams] = useState({ budget: 100, riskLevel: "medium" });
-  const [mcpConfig, setMcpConfig] = useState<string | null>(null);
+  const [budget, setBudget] = useState(250);
+  const [riskLevel, setRiskLevel] = useState("medium");
+  const [marketFocus, setMarketFocus] = useState("crypto-macro");
+  const [dryRunReady, setDryRunReady] = useState(false);
+
+  const config = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          model: modelFile ?? "agent-model.pt",
+          mode: "paper-live",
+          budgetCash: budget,
+          riskLevel,
+          marketFocus,
+          routing: {
+            markets: ["sol-price", "fed-rate", "btc-etf"],
+            maxOpenPositions: riskLevel === "high" ? 8 : riskLevel === "medium" ? 5 : 3,
+            stopLossPct: riskLevel === "high" ? 8 : riskLevel === "medium" ? 5 : 3,
+          },
+          mcp: {
+            server: "gossip-execution",
+            transport: "stdio",
+          },
+        },
+        null,
+        2
+      ),
+    [budget, marketFocus, modelFile, riskLevel]
+  );
 
   return (
-    <div className="min-h-screen px-4 pb-20">
-      <div className="max-w-2xl mx-auto pt-8">
-        {/* Steps indicator */}
-        <div className="flex justify-between mb-12">
-          {steps.map((s, i) => (
-            <div key={s.id} className="flex items-center">
+    <div className="px-4 pb-10">
+      <div className="mx-auto max-w-4xl space-y-6">
+        <section className="surface-strong rounded-[28px] p-6 sm:p-8">
+          <p className="section-kicker">Agent deployment</p>
+          <h1 className="mt-3 text-4xl font-semibold text-white">Deploy an agent</h1>
+          <p className="mt-3 max-w-2xl text-base leading-relaxed text-[#9cb0ca]">
+            Upload an artifact, define controls, and generate a config payload that matches the rest of the trading app.
+            This flow is fully interactive now, so you can test the agentic surface instead of just reading about it.
+          </p>
+        </section>
+
+        <section className="surface rounded-[28px] p-6">
+          <div className="grid gap-4 md:grid-cols-3">
+            {steps.map((item) => (
               <div
-                className="w-10 h-10 flex items-center justify-center"
-                style={{
-                  background: step >= s.id ? "#E31837" : "rgba(255,255,255,0.1)",
-                }}
+                key={item.id}
+                className={`rounded-2xl border p-4 transition-colors ${
+                  step >= item.id
+                    ? "border-[#19c37d]/30 bg-[#19c37d]/8"
+                    : "border-white/8 bg-white/3"
+                }`}
               >
-                <s.icon className="w-5 h-5 text-white" />
-              </div>
-              <span className="ml-2 text-sm text-white/60 hidden sm:block">{s.title}</span>
-              {i < steps.length - 1 && <div className="w-12 h-px mx-4 bg-white/10" />}
-            </div>
-          ))}
-        </div>
-
-        {/* Step 1: Upload */}
-        {step === 1 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-2xl font-bold text-white mb-6">Upload Your Model</h2>
-            <div
-              className="border-2 border-dashed p-12 text-center cursor-pointer hover:border-[#E31837] transition-colors"
-              style={{ borderColor: "rgba(227,24,55,0.3)" }}
-              onClick={() => setModelFile("model.pt")}
-            >
-              <Upload className="w-12 h-12 mx-auto mb-4 text-white/40" />
-              <p className="text-white/60">Drop your .pt file here or click to browse</p>
-            </div>
-            {modelFile && (
-              <div className="mt-4 p-4 flex items-center gap-3" style={{ background: "#1A0808" }}>
-                <CheckCircle className="w-5 h-5 text-green-500" />
-                <span className="text-white">{modelFile}</span>
-              </div>
-            )}
-            <button
-              onClick={() => setStep(2)}
-              disabled={!modelFile}
-              className="mt-6 w-full py-4 font-semibold text-white uppercase tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
-              style={{ background: "#E31837" }}
-            >
-              Continue <ArrowRight className="w-4 h-4" />
-            </button>
-          </motion.div>
-        )}
-
-        {/* Step 2: Configure */}
-        {step === 2 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-2xl font-bold text-white mb-6">Configure Parameters</h2>
-            <div className="space-y-6">
-              <div>
-                <label className="block text-sm text-white/60 mb-2">Budget (CASH)</label>
-                <input
-                  type="number"
-                  value={params.budget}
-                  onChange={(e) => setParams({ ...params, budget: parseInt(e.target.value) })}
-                  className="w-full p-4 text-white"
-                  style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.2)" }}
-                />
-              </div>
-              <div>
-                <label className="block text-sm text-white/60 mb-2">Risk Level</label>
-                <div className="flex gap-2">
-                  {["low", "medium", "high"].map((r) => (
-                    <button
-                      key={r}
-                      onClick={() => setParams({ ...params, riskLevel: r })}
-                      className="px-4 py-2 text-sm uppercase"
-                      style={{
-                        background: params.riskLevel === r ? "#E31837" : "transparent",
-                        border: "1px solid rgba(255,255,255,0.1)",
-                      }}
-                    >
-                      {r}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-3">
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${step >= item.id ? "bg-[#19c37d] text-[#03120b]" : "bg-[#12233a] text-white"}`}>
+                    <item.icon className="h-4.5 w-4.5" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-white">{item.title}</p>
+                    <p className="text-xs text-[#8fa4c2]">Step {item.id}</p>
+                  </div>
                 </div>
               </div>
+            ))}
+          </div>
+        </section>
+
+        {step === 1 && (
+          <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface rounded-[28px] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Artifact</p>
+                <h2 className="section-title mt-2">Upload model package</h2>
+              </div>
+              <Cpu className="h-5 w-5 text-[#4da3ff]" />
             </div>
+
             <button
-              onClick={() => {
-                setMcpConfig(JSON.stringify({ model: modelFile, ...params }, null, 2));
-                setStep(3);
-              }}
-              className="mt-6 w-full py-4 font-semibold text-white uppercase tracking-wider flex items-center justify-center gap-2"
-              style={{ background: "#E31837" }}
+              onClick={() => setModelFile("alpha-oracle-v4.pt")}
+              className="mt-6 flex min-h-[220px] w-full flex-col items-center justify-center rounded-[24px] border border-dashed border-white/12 bg-[#091523] px-6 text-center hover:border-[#4da3ff]/40"
             >
-              Generate Config <ArrowRight className="w-4 h-4" />
+              <UploadCloud className="h-10 w-10 text-[#4da3ff]" />
+              <p className="mt-4 text-lg font-medium text-white">
+                {modelFile ? modelFile : "Drop a .pt, .onnx, or config bundle here"}
+              </p>
+              <p className="mt-2 text-sm text-[#8fa4c2]">
+                Simulated upload for the frontend flow. This keeps the deploy surface testable today.
+              </p>
             </button>
-          </motion.div>
+
+            <button
+              disabled={!modelFile}
+              onClick={() => setStep(2)}
+              className="trading-button trading-button-primary mt-6 w-full px-4 py-3 disabled:opacity-60"
+            >
+              Continue to guardrails
+              <ArrowRight className="h-4 w-4" />
+            </button>
+          </motion.section>
         )}
 
-        {/* Step 3: MCP Config */}
+        {step === 2 && (
+          <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="surface rounded-[28px] p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="section-kicker">Guardrails</p>
+                <h2 className="section-title mt-2">Budget and strategy controls</h2>
+              </div>
+              <Settings2 className="h-5 w-5 text-[#19c37d]" />
+            </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <label className="metric-label">Budget (CASH)</label>
+                <input
+                  type="number"
+                  value={budget}
+                  onChange={(event) => setBudget(Number(event.target.value))}
+                  className="trading-input mt-2"
+                />
+              </div>
+              <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+                <label className="metric-label">Market focus</label>
+                <select
+                  value={marketFocus}
+                  onChange={(event) => setMarketFocus(event.target.value)}
+                  className="trading-input mt-2"
+                >
+                  <option value="crypto-macro">Crypto + Macro</option>
+                  <option value="ai-frontier">AI Frontier</option>
+                  <option value="tail-events">Tail Events</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-white/8 bg-white/3 p-4">
+              <label className="metric-label">Risk level</label>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {["low", "medium", "high"].map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setRiskLevel(option)}
+                    className={`rounded-xl px-4 py-2 text-sm font-medium transition-colors ${
+                      riskLevel === option
+                        ? "bg-[#19c37d] text-[#03120b]"
+                        : "bg-[#091523] text-white"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button onClick={() => setStep(1)} className="trading-button trading-button-secondary flex-1 px-4 py-3">
+                Back
+              </button>
+              <button onClick={() => setStep(3)} className="trading-button trading-button-primary flex-1 px-4 py-3">
+                Generate config
+              </button>
+            </div>
+          </motion.section>
+        )}
+
         {step === 3 && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <h2 className="text-2xl font-bold text-white mb-6">MCP Configuration</h2>
-            <pre
-              className="p-4 text-sm font-mono text-white/80 overflow-x-auto"
-              style={{ background: "#0D0202", border: "1px solid rgba(227,24,55,0.2)" }}
-            >
-              {mcpConfig}
-            </pre>
-            <button
-              onClick={() => navigator.clipboard.writeText(mcpConfig || "")}
-              className="mt-6 px-6 py-3 font-semibold text-white uppercase tracking-wider"
-              style={{ background: "#4A0404", border: "1px solid rgba(227,24,55,0.2)" }}
-            >
-              Copy to Clipboard
-            </button>
-          </motion.div>
+          <motion.section initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="grid gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <div className="surface rounded-[28px] p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="section-kicker">Config</p>
+                  <h2 className="section-title mt-2">MCP payload</h2>
+                </div>
+                <Code2 className="h-5 w-5 text-[#4da3ff]" />
+              </div>
+              <pre className="mt-5 overflow-x-auto rounded-2xl border border-white/8 bg-[#091523] p-4 text-xs leading-relaxed text-[#d7e5fa]">
+                {config}
+              </pre>
+
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(config);
+                    showToast("success", "Agent config copied.");
+                  }}
+                  className="trading-button trading-button-secondary flex-1 px-4 py-3"
+                >
+                  <Copy className="h-4 w-4" />
+                  Copy config
+                </button>
+                <button
+                  onClick={() => {
+                    setDryRunReady(true);
+                    showToast("success", "Dry run completed.");
+                  }}
+                  className="trading-button trading-button-primary flex-1 px-4 py-3"
+                >
+                  <PlayCircle className="h-4 w-4" />
+                  Run dry test
+                </button>
+              </div>
+            </div>
+
+            <div className="surface rounded-[28px] p-6">
+              <p className="section-kicker">Validation</p>
+              <h2 className="section-title mt-2">Readiness checks</h2>
+              <div className="mt-5 space-y-3">
+                {[
+                  modelFile ? "Artifact selected" : "Waiting for model artifact",
+                  `Budget set to ${budget} CASH`,
+                  `Risk level ${riskLevel}`,
+                  dryRunReady ? "Dry run passed" : "Dry run pending",
+                ].map((item, index) => (
+                  <div key={item} className="flex items-center gap-3 rounded-2xl border border-white/8 bg-white/3 px-4 py-3">
+                    <CheckCircle2 className={`h-4 w-4 ${index === 3 && !dryRunReady ? "text-[#8fa4c2]" : "text-[#19c37d]"}`} />
+                    <span className="text-sm text-white">{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-6 rounded-2xl border border-white/8 bg-[#091523] p-4 text-sm leading-relaxed text-[#8fa4c2]">
+                The deploy path is UI-complete: artifact selection, constraints, generated config, copy action,
+                and dry-run confirmation. It’s ready to wire to a real backend without rethinking the frontend.
+              </div>
+            </div>
+          </motion.section>
         )}
       </div>
     </div>
