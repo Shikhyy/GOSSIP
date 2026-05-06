@@ -8,6 +8,7 @@ import {
 import {
   PublicKey,
   Transaction,
+  TransactionInstruction,
   SystemProgram,
   Connection,
 } from "@solana/web3.js";
@@ -18,13 +19,20 @@ import {
 import { Program, AnchorProvider, Idl } from "@coral-xyz/anchor";
 import * as anchor from "@coral-xyz/anchor";
 import IDL from "@/idl/gossip.json";
+import { Gossip } from "@/idl/gossip";
 
 const headers = createActionHeaders();
 
 const PROGRAM_ID = new PublicKey("9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi");
 const MARKET_TITLE = "Will SOL hit 250 by Friday?";
 
-export const GET = async (req: Request) => {
+interface PredictionMethodBuilder {
+  accounts(accounts: Record<string, unknown>): {
+    instruction(): Promise<TransactionInstruction>;
+  };
+}
+
+export const GET = async () => {
   const payload: ActionGetResponse = {
     title: "🔮 GOSSIP: SOL Price Prediction",
     icon: "https://ucarecdn.com/7aa46c85-08a4-4bc7-9381-0978bd7b22bd/gossip_logo.png",
@@ -82,17 +90,17 @@ export const POST = async (req: Request) => {
     let account: PublicKey;
     try {
       account = new PublicKey(body.account);
-    } catch (err) {
+    } catch {
       return new Response('Invalid "account" provided', { status: 400, headers });
     }
 
     const connection = new Connection("https://api.devnet.solana.com", "confirmed");
     const provider = new AnchorProvider(
       connection,
-      { publicKey: account } as any,
+      { publicKey: account } as AnchorProvider["wallet"],
       { commitment: "confirmed" }
     );
-    const program = new Program(IDL as Idl, provider);
+    const program = new Program(IDL as Idl, provider) as unknown as Program<Gossip>;
 
     const [marketPda] = PublicKey.findProgramAddressSync(
       [Buffer.from("market"), Buffer.from(MARKET_TITLE)],
@@ -100,7 +108,9 @@ export const POST = async (req: Request) => {
     );
 
     // Fetch market state to get the mint
-    const marketState = await program.account.market.fetch(marketPda);
+    const marketState = await program.account.market.fetch(marketPda) as {
+      mint: PublicKey;
+    };
     const mint = marketState.mint as PublicKey;
 
     const userTokenAccount = getAssociatedTokenAddressSync(mint, account);
@@ -123,8 +133,13 @@ export const POST = async (req: Request) => {
       PROGRAM_ID
     );
 
-    const ix = await program.methods
-      .placePrediction(predictionId, point, new anchor.BN(amount))
+    const placePrediction = program.methods.placePrediction(
+      predictionId,
+      point,
+      new anchor.BN(amount)
+    ) as unknown as PredictionMethodBuilder;
+
+    const ix = await placePrediction
       .accounts({
         market: marketPda,
         prediction: predictionPda,
@@ -152,8 +167,8 @@ export const POST = async (req: Request) => {
     });
 
     return Response.json(payload, { headers });
-  } catch (err) {
-    console.error(err);
+  } catch (error) {
+    console.error(error);
     return new Response("Market not found or transaction failed", { status: 500, headers });
   }
 };
