@@ -1,4 +1,5 @@
 use anchor_lang::prelude::*;
+use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
 
 declare_id!("9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi");
 
@@ -30,6 +31,8 @@ pub mod gossip {
         market.final_outcome = 0.0;
         market.resolution_source = resolution_source;
         market.ends_at = ends_at;
+        market.mint = ctx.accounts.mint.key();
+        market.vault_bump = ctx.bumps.vault;
 
         msg!("Market Created: {} with mu: {}, sigma: {}", market.title, market.mu, market.sigma);
         Ok(())
@@ -38,20 +41,31 @@ pub mod gossip {
     /// Place a prediction on a specific point.
     pub fn place_prediction(
         ctx: Context<PlacePrediction>,
+        prediction_id: u64,
         point: f64,
         amount: u64,
     ) -> Result<()> {
         let market = &mut ctx.accounts.market;
         let prediction = &mut ctx.accounts.prediction;
 
-        msg!("Simulating Reflect CPI: Wrapping {} CASH into rCASH for yield generation.", amount);
+        // Transfer tokens from user to vault
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.user_token_account.to_account_info(),
+            to: ctx.accounts.vault.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        token::transfer(cpi_ctx, amount)?;
         
         let weight = (amount as f64) / (market.b + 1.0);
         let old_mu = market.mu;
         
+        // Tilt the market curve
         market.mu = old_mu + weight * (point - old_mu) / (market.sigma.powi(2) + 0.1);
         market.total_liquidity += amount;
 
+        prediction.id = prediction_id;
         prediction.owner = ctx.accounts.user.key();
         prediction.market = market.key();
         prediction.point = point;
@@ -89,14 +103,38 @@ pub mod gossip {
         require!(market.resolved, GossipError::NotResolved);
         require!(!prediction.settled, GossipError::AlreadySettled);
 
-        let z_score = (market.final_outcome - prediction.initial_mu) / prediction.initial_sigma;
+        // Density calculation for continuous payout
+        let z_score = (market.final_outcome - prediction.point) / prediction.initial_sigma;
         let density = (1.0 / (prediction.initial_sigma * (2.0 * std::f64::consts::PI).sqrt()))
             * (-0.5 * z_score.powi(2)).exp();
-        let multiplier = density * 100000.0;
-
+        
+        // payout logic: amount * density * scale
+        // Scaling factor to make payouts meaningful
+        let multiplier = density * 100.0; 
         let payout = (prediction.amount as f64 * multiplier) as u64;
+        
         prediction.payout = payout;
         prediction.settled = true;
+
+        if payout > 0 {
+            // Transfer winnings from vault to user
+            let market_title = market.title.clone();
+            let seeds = &[
+                b"vault",
+                market_title.as_bytes(),
+                &[market.vault_bump],
+            ];
+            let signer = &[&seeds[..]];
+
+            let cpi_accounts = Transfer {
+                from: ctx.accounts.vault.to_account_info(),
+                to: ctx.accounts.user_token_account.to_account_info(),
+                authority: ctx.accounts.vault.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+            token::transfer(cpi_ctx, payout)?;
+        }
 
         msg!("Settled position with payout: {}", payout);
         Ok(())
@@ -105,7 +143,6 @@ pub mod gossip {
     /// Update market parameters (oracle only)
     pub fn update_market(ctx: Context<UpdateMarket>, new_mu: f64, new_sigma: f64) -> Result<()> {
         let market = &mut ctx.accounts.market;
-
         require!(new_sigma > 0.0, GossipError::InvalidParams);
 
         market.mu = new_mu;
@@ -122,30 +159,60 @@ pub struct CreateMarket<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 32 + (4 + title.len()) + (4 + category.len()) + 8 + 8 + 8 + 8 + 1 + 8 + (4 + resolution_source.len()) + 8,
+        space = 8 + 32 + 32 + (4 + title.len()) + (4 + category.len()) + 8 + 8 + 8 + 8 + 1 + 8 + (4 + resolution_source.len()) + 8 + 32 + 1,
         seeds = [b"market", title.as_bytes()],
         bump
     )]
     pub market: Account<'info, Market>,
+
+    #[account(
+        init,
+        payer = authority,
+        seeds = [b"vault", title.as_bytes()],
+        bump,
+        token::mint = mint,
+        token::authority = vault,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+    
+    pub mint: Account<'info, Mint>,
+
     #[account(mut)]
     pub authority: Signer<'info>,
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    pub rent: Sysvar<'info, Rent>,
 }
 
 #[derive(Accounts)]
+#[instruction(prediction_id: u64)]
 pub struct PlacePrediction<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
+
     #[account(
-        init_if_needed,
+        init,
         payer = user,
-        space = 8 + 32 + 32 + 8 + 8 + 8 + 8,
-        seeds = [b"prediction", market.key().as_ref(), user.key().as_ref()],
+        space = 8 + 8 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 1 + 8,
+        seeds = [b"prediction", market.key().as_ref(), user.key().as_ref(), prediction_id.to_le_bytes().as_ref()],
         bump
     )]
     pub prediction: Account<'info, Prediction>,
+
     #[account(mut)]
     pub user: Signer<'info>,
+
+    #[account(mut)]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", market.title.as_bytes()],
+        bump = market.vault_bump,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
@@ -160,9 +227,23 @@ pub struct ResolveMarket<'info> {
 pub struct SettlePosition<'info> {
     #[account(mut)]
     pub market: Account<'info, Market>,
+    
     #[account(mut, has_one = owner)]
     pub prediction: Account<'info, Prediction>,
+    
     pub owner: Signer<'info>,
+
+    #[account(mut)]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", market.title.as_bytes()],
+        bump = market.vault_bump,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
 }
 
 #[derive(Accounts)]
@@ -186,10 +267,13 @@ pub struct Market {
     pub final_outcome: f64,
     pub resolution_source: String,
     pub ends_at: i64,
+    pub mint: Pubkey,
+    pub vault_bump: u8,
 }
 
 #[account]
 pub struct Prediction {
+    pub id: u64,
     pub owner: Pubkey,
     pub market: Pubkey,
     pub point: f64,
