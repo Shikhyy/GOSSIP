@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProvider } from "@/components/WalletProvider";
+import { ToastProvider } from "@/components/Toast";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import Ticker from "@/components/Ticker";
@@ -36,12 +37,14 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-background text-foreground">
         <SolanaWalletProvider>
-          <AnimatedBackground />
-          <Navbar />
-          <Ticker />
-          <div className="pt-16 flex-1">{children}</div>
-          <ScrollToTop />
-          <Footer />
+          <ToastProvider>
+            <AnimatedBackground />
+            <Navbar />
+            <Ticker />
+            <div className="pt-16 flex-1">{children}</div>
+            <ScrollToTop />
+            <Footer />
+          </ToastProvider>
         </SolanaWalletProvider>
       </body>
     </html>
