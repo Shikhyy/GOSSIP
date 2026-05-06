@@ -1,73 +1,72 @@
 "use client";
 
 import Link from "next/link";
-import { Globe, MessageCircle, Send } from "lucide-react";
+import { ArrowUpRight, Bot, Database, Layers3, ShieldCheck } from "lucide-react";
+
+const footerLinks = [
+  { label: "Markets", href: "/markets" },
+  { label: "Create Market", href: "/markets/create" },
+  { label: "Agents", href: "/agents" },
+  { label: "Deploy Agent", href: "/agents/deploy" },
+  { label: "Portfolio", href: "/portfolio" },
+];
 
 export default function Footer() {
   return (
-    <footer className="px-4 py-12 mt-20" style={{ background: "#0D0202", borderTop: "1px solid rgba(227,24,55,0.1)" }}>
-      <div className="max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-6 h-6 flex items-center justify-center" style={{ background: "#E31837" }}>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none">
-                  <circle cx="6" cy="6" r="2" fill="white"/>
-                  <circle cx="18" cy="6" r="2" fill="white"/>
-                  <circle cx="6" cy="18" r="2" fill="white"/>
-                  <circle cx="18" cy="18" r="2" fill="white"/>
-                  <path d="M6 6h10M6 6v10" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-              </div>
-              <span className="text-lg font-bold text-white">GOSSIP</span>
+    <footer className="mt-16 border-t border-white/6 px-4 pb-10 pt-12">
+      <div className="mx-auto grid max-w-7xl gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <div className="surface-strong rounded-2xl p-6">
+          <div className="mb-5 flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#12233a]">
+              <Layers3 className="h-5 w-5 text-[#4da3ff]" />
             </div>
-            <p className="text-sm mb-4 max-w-sm" style={{ color: "#999999" }}>
-              The infinite upside continuous prediction market on Solana. 
-              Bet on exact values with AI agents and yield-bearing pools.
-            </p>
-            <div className="flex gap-3">
-              <a href="#" className="p-2 transition-colors hover:text-white" style={{ color: "#666" }}>
-                <Globe className="w-5 h-5" />
-              </a>
-              <a href="#" className="p-2 transition-colors hover:text-white" style={{ color: "#666" }}>
-                <MessageCircle className="w-5 h-5" />
-              </a>
-              <a href="#" className="p-2 transition-colors hover:text-white" style={{ color: "#666" }}>
-                <Send className="w-5 h-5" />
-              </a>
+            <div>
+              <p className="text-sm font-semibold text-white">GOSSIP execution stack</p>
+              <p className="text-xs text-[#8fa4c2]">Markets, agents, and portfolio management in one interface.</p>
             </div>
           </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wide">Markets</h4>
-            <ul className="space-y-2">
-              <li><Link href="/markets" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>All Markets</Link></li>
-              <li><Link href="/markets?category=Crypto" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>Crypto</Link></li>
-              <li><Link href="/markets?category=Finance" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>Finance</Link></li>
-              <li><Link href="/markets?category=AI" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>AI</Link></li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="text-sm font-semibold text-white mb-4 uppercase tracking-wide">Protocol</h4>
-            <ul className="space-y-2">
-              <li><Link href="/agents" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>AI Agents</Link></li>
-              <li><Link href="/portfolio" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>Portfolio</Link></li>
-              <li><a href="#" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>Documentation</a></li>
-              <li><a href="#" className="text-sm transition-colors hover:text-white" style={{ color: "#999" }}>GitHub</a></li>
-            </ul>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <Database className="mb-3 h-4 w-4 text-[#19c37d]" />
+              <p className="text-sm font-medium text-white">Continuous markets</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#8fa4c2]">
+                Trade exact outcomes with distribution-aware pricing and liquidity snapshots.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <Bot className="mb-3 h-4 w-4 text-[#4da3ff]" />
+              <p className="text-sm font-medium text-white">Agent workflows</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#8fa4c2]">
+                Deploy model configs, monitor live runs, and compare machine flow to consensus.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
+              <ShieldCheck className="mb-3 h-4 w-4 text-[#ffb547]" />
+              <p className="text-sm font-medium text-white">Trading controls</p>
+              <p className="mt-1 text-xs leading-relaxed text-[#8fa4c2]">
+                Wallet-connected tickets, verification gates, and portfolio tracking out of the box.
+              </p>
+            </div>
           </div>
         </div>
 
-        <div className="pt-8 flex flex-col md:flex-row justify-between items-center gap-4" style={{ borderTop: "1px solid rgba(227,24,55,0.1)" }}>
-          <p className="text-xs" style={{ color: "#666" }}>
-            © 2026 GOSSIP Protocol. Built for Colosseum Frontier.
-          </p>
-          <div className="flex gap-6">
-            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: "#666" }}>Terms</a>
-            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: "#666" }}>Privacy</a>
-            <a href="#" className="text-xs transition-colors hover:text-white" style={{ color: "#666" }}>Disclaimer</a>
+        <div className="surface rounded-2xl p-6">
+          <p className="section-kicker">Navigate</p>
+          <div className="mt-4 grid gap-2">
+            {footerLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center justify-between rounded-xl border border-white/8 bg-white/3 px-4 py-3 text-sm text-white hover:bg-white/5"
+              >
+                <span>{link.label}</span>
+                <ArrowUpRight className="h-4 w-4 text-[#8fa4c2]" />
+              </Link>
+            ))}
           </div>
+          <p className="mt-5 text-xs text-[#6f84a1]">
+            Built for fast iteration on Solana prediction products. Demo data remains available when the onchain program is unavailable.
+          </p>
         </div>
       </div>
     </footer>

@@ -1,14 +1,14 @@
 "use client";
 
-import React, { useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
-import { Menu, X, Home, TrendingUp, Bot, Wallet } from "lucide-react";
+import { BarChart3, Bot, ChevronRight, Menu, PlusCircle, Wallet2, X } from "lucide-react";
 
 const navItems = [
-  { href: "/", label: "Home" },
+  { href: "/", label: "Overview" },
   { href: "/markets", label: "Markets" },
   { href: "/agents", label: "Agents" },
   { href: "/portfolio", label: "Portfolio" },
@@ -19,140 +19,132 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <motion.header
-      initial={{ y: -100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      transition={{ duration: 0.7, ease: "easeOut" }}
-      className="fixed top-0 left-0 right-0 z-50"
-      style={{ background: "rgba(13, 2, 2, 0.9)", backdropFilter: "blur(16px)", borderTop: "3px solid #E31837", borderBottom: "1px solid rgba(227, 24, 55, 0.08)", boxShadow: "0 4px 30px rgba(0, 0, 0, 0.5)" }}
-    >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-14">
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-7 h-7 relative flex items-center justify-center" style={{ background: "#E31837" }}>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
-                <circle cx="6" cy="6" r="2.5" fill="white"/>
-                <circle cx="18" cy="6" r="2.5" fill="white"/>
-                <circle cx="6" cy="18" r="2.5" fill="white"/>
-                <circle cx="18" cy="18" r="2.5" fill="white"/>
-                <path d="M6 6h10M6 6v10h10v-5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                <path d="M16 11l5 5" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-              </svg>
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/6 bg-[#07101cb8] backdrop-blur-xl">
+      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
+        <div className="flex items-center gap-6">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4da3ff]/20 bg-[#0d1a2b] shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
+              <BarChart3 className="h-4.5 w-4.5 text-[#4da3ff]" />
             </div>
-            <span className="text-lg font-bold tracking-tight text-white">
-              GOSSIP
-            </span>
-            <div className="flex items-center gap-1.5 ml-1">
-              <div className="w-2 h-2 rounded-full animate-pulse" style={{ background: "#22C55E" }} />
-              <span className="text-[9px] font-medium uppercase tracking-wider hidden sm:block" style={{ color: "#22C55E" }}>LIVE</span>
+            <div>
+              <p className="text-sm font-semibold text-white">GOSSIP Markets</p>
+              <p className="text-[11px] text-[#8fa4c2]">Continuous prediction trading</p>
             </div>
           </Link>
 
-          {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-0.5">
+          <nav className="hidden items-center gap-1 md:flex">
             {navItems.map((item) => {
-              const isActive = pathname === item.href;
+              const active = pathname === item.href;
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`relative px-4 py-2 text-sm font-medium tracking-wide uppercase transition-colors ${
-                    isActive ? "text-white" : "text-neutral-400 hover:text-white"
+                  className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    active ? "bg-white/7 text-white" : "text-[#9cb0ca] hover:text-white"
                   }`}
                 >
                   {item.label}
-                  {isActive && (
-                    <motion.div
-                      layoutId="nav-red"
-                      className="absolute bottom-0 left-2 right-2 h-[2px]"
-                      style={{ background: "#E31837" }}
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                    />
-                  )}
                 </Link>
               );
             })}
           </nav>
+        </div>
 
-          {/* Wallet + Mobile Toggle */}
-          <div className="flex items-center gap-3">
-            <div className="wallet-adapter-sharp hidden sm:block">
-              <WalletMultiButton
-                style={{
-                  background: "#E31837",
-                  border: "none",
-                  borderRadius: "0px",
-                  height: "32px",
-                  padding: "0 14px",
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: "#fff",
-                  lineHeight: "30px",
-                  letterSpacing: "0.05em",
-                }}
-              />
-            </div>
-            <button
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className="md:hidden p-2 text-white/70 hover:text-white transition-colors"
-            >
-              {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/agents/deploy"
+            className="trading-button trading-button-secondary px-3 py-2"
+          >
+            <Bot className="h-4 w-4" />
+            Deploy Agent
+          </Link>
+          <Link
+            href="/markets/create"
+            className="trading-button trading-button-primary px-3 py-2"
+          >
+            <PlusCircle className="h-4 w-4" />
+            New Market
+          </Link>
+          <div className="wallet-adapter-sharp">
+            <WalletMultiButton
+              style={{
+                height: "40px",
+                borderRadius: "14px",
+                background: "rgba(13,26,43,0.92)",
+                border: "1px solid rgba(124,151,185,0.2)",
+                color: "#eef4ff",
+                boxShadow: "none",
+                padding: "0 14px",
+                fontSize: "13px",
+                fontWeight: 600,
+              }}
+            />
           </div>
         </div>
+
+        <button
+          onClick={() => setMobileOpen((current) => !current)}
+          className="inline-flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white md:hidden"
+        >
+          {mobileOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
+        </button>
       </div>
 
-      {/* Mobile Menu */}
       <AnimatePresence>
         {mobileOpen && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25 }}
-            style={{ background: "rgba(13, 2, 2, 0.95)", borderTop: "1px solid rgba(227, 24, 55, 0.1)" }}
+            className="border-t border-white/6 bg-[#07101cf0] md:hidden"
           >
-            <div className="px-4 py-3 space-y-0.5">
-              {navItems.map((item) => {
-                const isActive = pathname === item.href;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setMobileOpen(false)}
-                    className={`block px-3 py-2.5 text-sm font-medium uppercase tracking-wide transition-colors ${
-                      isActive
-                        ? "text-white"
-                        : "text-neutral-400 hover:text-white"
-                    }`}
-                  >
-                    {item.label}
-                    {isActive && <div className="mt-1 w-6 h-[2px]" style={{ background: "#E31837" }} />}
-                  </Link>
-                );
-              })}
-              <div className="pt-2 sm:hidden">
+            <div className="space-y-2 px-4 py-4">
+              {navItems.map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center justify-between rounded-xl border border-white/8 bg-white/4 px-4 py-3 text-sm text-white"
+                >
+                  <span>{item.label}</span>
+                  <ChevronRight className="h-4 w-4 text-[#8fa4c2]" />
+                </Link>
+              ))}
+              <div className="grid grid-cols-2 gap-2 pt-2">
+                <Link href="/agents/deploy" className="trading-button trading-button-secondary px-3 py-3 text-center">
+                  <Bot className="h-4 w-4" />
+                  Agent
+                </Link>
+                <Link href="/markets/create" className="trading-button trading-button-primary px-3 py-3 text-center">
+                  <PlusCircle className="h-4 w-4" />
+                  Market
+                </Link>
+              </div>
+              <div className="pt-2">
                 <WalletMultiButton
                   style={{
-                    background: "#E31837",
-                    border: "none",
-                    borderRadius: "0px",
-                    height: "40px",
-                    padding: "0 14px",
-                    fontSize: "12px",
-                    fontWeight: 600,
-                    color: "#fff",
                     width: "100%",
                     justifyContent: "center",
-                    letterSpacing: "0.05em",
+                    height: "42px",
+                    borderRadius: "14px",
+                    background: "rgba(13,26,43,0.92)",
+                    border: "1px solid rgba(124,151,185,0.2)",
+                    color: "#eef4ff",
+                    boxShadow: "none",
+                    padding: "0 14px",
+                    fontSize: "13px",
+                    fontWeight: 600,
                   }}
                 />
+              </div>
+              <div className="flex items-center gap-2 rounded-xl border border-white/8 bg-[#0b1727] px-3 py-3 text-xs text-[#8fa4c2]">
+                <Wallet2 className="h-4 w-4 text-[#4da3ff]" />
+                Devnet wallet, live UI, demo liquidity fallback.
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-    </motion.header>
+    </header>
   );
 }

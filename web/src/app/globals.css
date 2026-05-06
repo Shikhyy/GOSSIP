@@ -8,7 +8,7 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-mono: var(--font-mono);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -20,218 +20,229 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
-  --color-destructive: var(--destructive);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-info: var(--info);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
 }
 
-/* Tradebox Brand Colors */
 :root {
-  --background: #0D0202;
-  --foreground: #FFFFFF;
-
-  --card: #1A0808;
-  --card-foreground: #FFFFFF;
-
-  --popover: #1A0808;
-  --popover-foreground: #FFFFFF;
-
-  --primary: #E31837;
-  --primary-foreground: #FFFFFF;
-
-  --secondary: #2D2D2D;
-  --secondary-foreground: #FFFFFF;
-
-  --muted: #2D2D2D;
-  --muted-foreground: #999999;
-
-  --accent: #C25B5B;
-  --accent-foreground: #FFFFFF;
-
-  --destructive: #E31837;
-  --success: #22C55E;
-  --warning: #EAB308;
-  --info: #3B82F6;
-
-  --border: rgba(227, 24, 55, 0.15);
-  --input: rgba(227, 24, 55, 0.08);
-  --ring: #E31837;
-
-  --radius: 0.25rem;
+  --background: #07111f;
+  --foreground: #eef4ff;
+  --primary: #19c37d;
+  --primary-foreground: #04110c;
+  --secondary: #12233a;
+  --secondary-foreground: #eef4ff;
+  --accent: #4da3ff;
+  --accent-foreground: #eef4ff;
+  --muted: #0d1a2b;
+  --muted-foreground: #9cb0ca;
+  --border: rgba(124, 151, 185, 0.18);
+  --input: rgba(124, 151, 185, 0.12);
+  --ring: rgba(77, 163, 255, 0.55);
+  --card: rgba(8, 16, 29, 0.86);
+  --card-foreground: #eef4ff;
+  --popover: rgba(8, 16, 29, 0.96);
+  --popover-foreground: #eef4ff;
+  --success: #19c37d;
+  --warning: #ffb547;
+  --danger: #ff5f6d;
+  --info: #4da3ff;
+  --font-sans: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", "SF Mono", "Menlo", monospace;
+  --radius: 0.85rem;
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground antialiased;
-    background-image:
-      radial-gradient(ellipse 70% 40% at 20% 0%, rgba(227, 24, 55, 0.08), transparent),
-      radial-gradient(ellipse 50% 30% at 80% 10%, rgba(74, 4, 4, 0.6), transparent);
-    background-attachment: fixed;
-  }
+
   html {
     @apply font-sans;
     scroll-behavior: smooth;
   }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    background-image:
+      radial-gradient(circle at top left, rgba(77, 163, 255, 0.12), transparent 28%),
+      radial-gradient(circle at top right, rgba(25, 195, 125, 0.09), transparent 24%),
+      linear-gradient(180deg, #091423 0%, #07111f 42%, #060d19 100%);
+    min-height: 100vh;
+  }
+
+  a {
+    @apply transition-colors;
+  }
 }
 
-/* Maroon block panels — Tradebox signature */
-.panel-maroon {
-  background: #4A0404;
-  border: 1px solid rgba(227, 24, 55, 0.3);
+.app-shell {
+  position: relative;
 }
 
-.panel-dark {
-  background: #0D0202;
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.surface {
+  background: rgba(8, 16, 29, 0.78);
+  border: 1px solid rgba(124, 151, 185, 0.16);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(14px);
 }
 
-.panel-red {
-  background: #E31837;
-  color: #FFFFFF;
+.surface-strong {
+  background: linear-gradient(180deg, rgba(10, 21, 38, 0.94), rgba(7, 15, 28, 0.96));
+  border: 1px solid rgba(124, 151, 185, 0.18);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px);
 }
 
-/* Geometric red accent line */
-.accent-line {
-  width: 40px;
-  height: 3px;
-  background: #E31837;
+.surface-muted {
+  background: rgba(11, 21, 36, 0.72);
+  border: 1px solid rgba(124, 151, 185, 0.12);
 }
 
-.accent-line-wide {
-  width: 80px;
-  height: 3px;
-  background: #E31837;
-}
-
-/* Red text accent */
-.text-red-bold {
-  color: #E31837;
-}
-
-.text-lite-maroon {
-  color: #C25B5B;
-}
-
-/* Gradient text red */
-.gradient-red {
-  background: linear-gradient(135deg, #E31837, #C25B5B);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Red glow */
-.glow-red {
-  box-shadow: 0 0 30px rgba(227, 24, 55, 0.25), 0 0 80px rgba(227, 24, 55, 0.08);
-}
-
-/* Button styles */
-.btn-primary {
-  background: #E31837;
-  color: #FFFFFF;
-  font-weight: 600;
-  transition: all 0.2s ease;
-}
-
-.btn-primary:hover {
-  background: #C41230;
-  box-shadow: 0 0 25px rgba(227, 24, 55, 0.4);
-}
-
-.btn-outline {
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  color: #FFFFFF;
-  background: transparent;
-  transition: all 0.2s ease;
-}
-
-.btn-outline:hover {
-  border-color: #E31837;
-  background: rgba(227, 24, 55, 0.08);
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-8px); }
-}
-
-@keyframes pulse-red {
-  0%, 100% { opacity: 0.3; }
-  50% { opacity: 0.7; }
-}
-
-@keyframes sweep {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-float {
-  animation: float 5s ease-in-out infinite;
-}
-
-.animate-pulse-red {
-  animation: pulse-red 3s ease-in-out infinite;
-}
-
-/* Counting animation */
-@keyframes countUp {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-count {
-  animation: countUp 0.6s ease-out forwards;
-}
-
-/* Ticker scroll */
-@keyframes ticker {
-  0% { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
-}
-
-.animate-ticker {
-  animation: ticker 20s linear infinite;
-}
-
-/* Status badge */
-.badge-live {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22C55E;
-  border: 1px solid rgba(34, 197, 94, 0.3);
-}
-
-.badge-connecting {
-  background: rgba(234, 179, 8, 0.15);
-  color: #EAB308;
-  border: 1px solid rgba(234, 179, 8, 0.3);
-}
-
-/* Subtle grid */
-.grid-bg {
+.grid-panel {
   background-image:
-    linear-gradient(rgba(227, 24, 55, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(227, 24, 55, 0.03) 1px, transparent 1px);
-  background-size: 80px 80px;
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+  background-size: 22px 22px;
 }
 
-/* Scrollbar */
+.metric-label {
+  color: #8fa4c2;
+  font-size: 0.7rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  color: #eef4ff;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.text-positive {
+  color: var(--success);
+}
+
+.text-negative {
+  color: var(--danger);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border-radius: 999px;
+  border: 1px solid rgba(124, 151, 185, 0.16);
+  background: rgba(13, 24, 41, 0.75);
+  padding: 0.35rem 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #d4e2f7;
+}
+
+.pill-positive {
+  border-color: rgba(25, 195, 125, 0.25);
+  color: #8bf0c0;
+  background: rgba(25, 195, 125, 0.08);
+}
+
+.pill-negative {
+  border-color: rgba(255, 95, 109, 0.25);
+  color: #ffb2b8;
+  background: rgba(255, 95, 109, 0.08);
+}
+
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #eef4ff;
+}
+
+.section-kicker {
+  color: #8fa4c2;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.trading-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 0.8rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  letter-spacing: 0;
+  transition:
+    transform 180ms ease,
+    background-color 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.trading-button:hover {
+  transform: translateY(-1px);
+}
+
+.trading-button-primary {
+  background: linear-gradient(135deg, #19c37d, #118f5b);
+  color: #03120b;
+  box-shadow: 0 12px 30px rgba(25, 195, 125, 0.2);
+}
+
+.trading-button-secondary {
+  background: rgba(14, 27, 46, 0.85);
+  border: 1px solid rgba(124, 151, 185, 0.18);
+  color: #eef4ff;
+}
+
+.trading-input {
+  width: 100%;
+  border-radius: 0.8rem;
+  border: 1px solid rgba(124, 151, 185, 0.16);
+  background: rgba(7, 14, 25, 0.9);
+  color: #eef4ff;
+  padding: 0.9rem 1rem;
+  transition:
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    background-color 160ms ease;
+}
+
+.trading-input:focus {
+  outline: none;
+  border-color: rgba(77, 163, 255, 0.45);
+  box-shadow: 0 0 0 4px rgba(77, 163, 255, 0.12);
+}
+
+.table-row {
+  border-top: 1px solid rgba(124, 151, 185, 0.1);
+}
+
+.table-row:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.chart-glow {
+  filter: drop-shadow(0 0 24px rgba(77, 163, 255, 0.2));
+}
+
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #0D0202;
+  background: rgba(8, 16, 29, 0.94);
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #4A0404;
+  background: rgba(124, 151, 185, 0.24);
+  border-radius: 999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #E31837;
+  background: rgba(124, 151, 185, 0.36);
 }

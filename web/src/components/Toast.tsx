@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useRef, useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, AlertCircle, X } from "lucide-react";
 
@@ -27,9 +27,11 @@ export function useToast() {
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const nextToastId = useRef(0);
 
   const showToast = (type: ToastType, message: string, txLink?: string) => {
-    const id = Math.random().toString(36).slice(2);
+    nextToastId.current += 1;
+    const id = `toast-${nextToastId.current}`;
     setToasts((prev) => [...prev, { id, type, message, txLink }]);
     setTimeout(() => removeToast(id), 5000);
   };
@@ -67,6 +69,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 <a
                   href={toast.txLink}
                   target="_blank"
+                  rel="noreferrer"
                   className="text-xs text-[#E31837] hover:underline"
                 >
                   View

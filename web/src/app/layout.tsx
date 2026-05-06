@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SolanaWalletProvider } from "@/components/WalletProvider";
 import { ToastProvider } from "@/components/Toast";
@@ -9,20 +8,10 @@ import Ticker from "@/components/Ticker";
 import ScrollToTop from "@/components/ScrollToTop";
 import AnimatedBackground from "@/components/AnimatedBackground";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "GOSSIP Protocol | Infinite Upside Prediction Markets",
+  title: "GOSSIP Markets",
   description:
-    "The first continuous prediction market on Solana. Bet on exact values with infinite upside. AI agents, yield-bearing pools, and Gaussian AMM.",
+    "A trading-first continuous prediction market interface with agent workflows, portfolio tracking, and Solana wallet connectivity.",
 };
 
 export default function RootLayout({
@@ -33,15 +22,15 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
-      <body className="min-h-full flex flex-col bg-background text-foreground">
+      <body className="app-shell min-h-full flex flex-col bg-background text-foreground">
         <SolanaWalletProvider>
           <ToastProvider>
             <AnimatedBackground />
             <Navbar />
             <Ticker />
-            <div className="pt-16 flex-1">{children}</div>
+            <main className="flex-1 pt-24">{children}</main>
             <ScrollToTop />
             <Footer />
           </ToastProvider>

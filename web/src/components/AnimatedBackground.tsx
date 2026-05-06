@@ -1,61 +1,56 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 
-const particles = Array.from({ length: 16 }, (_, i) => ({
-  id: i,
-  left: `${(i * 37 + 13) % 100}%`,
-  top: `${(i * 53 + 7) % 100}%`,
-  duration: 5 + ((i * 13) % 5),
-  delay: ((i * 7) % 4),
+const beams = [
+  { top: "16%", width: "48rem", left: "-8rem", duration: 16, opacity: 0.2 },
+  { top: "34%", width: "34rem", left: "42%", duration: 20, opacity: 0.16 },
+  { top: "68%", width: "44rem", left: "-2rem", duration: 18, opacity: 0.12 },
+];
+
+const dots = Array.from({ length: 18 }, (_, index) => ({
+  id: index,
+  left: `${(index * 17 + 11) % 100}%`,
+  top: `${(index * 31 + 7) % 100}%`,
+  duration: 7 + (index % 5),
 }));
 
 export default function AnimatedBackground() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-
   return (
-    <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
-      {/* Red gradient orbs */}
-      <motion.div
-        animate={{ x: [0, 20, -10, 0], y: [0, -30, 15, 0], scale: [1, 1.08, 0.95, 1] }}
-        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[-5%] left-[5%] w-[500px] h-[500px]"
-        style={{ background: "radial-gradient(circle, rgba(227,24,55,0.15) 0%, transparent 65%)", filter: "blur(70px)" }}
-      />
-      <motion.div
-        animate={{ x: [0, -25, 20, 0], y: [0, 25, -20, 0], scale: [1, 0.92, 1.05, 1] }}
-        transition={{ duration: 22, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-[-10%] right-[0%] w-[450px] h-[450px]"
-        style={{ background: "radial-gradient(circle, rgba(74,4,4,0.5) 0%, transparent 65%)", filter: "blur(70px)" }}
-      />
-      <motion.div
-        animate={{ x: [0, 30, -20, 0] }}
-        transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-[50%] right-[15%] w-[250px] h-[250px]"
-        style={{ background: "radial-gradient(circle, rgba(194,91,91,0.08) 0%, transparent 65%)", filter: "blur(50px)" }}
-      />
+    <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(77,163,255,0.08),transparent_35%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_75%_0%,rgba(25,195,125,0.08),transparent_28%)]" />
 
-      {/* Floating particles */}
-      {mounted && particles.map((p) => (
+      <div className="absolute inset-0 grid-panel opacity-30" />
+
+      {beams.map((beam, index) => (
         <motion.div
-          key={p.id}
-          className="absolute w-[2px] h-[2px] rounded-full"
-          style={{ left: p.left, top: p.top, background: "rgba(227,24,55,0.25)" }}
-          animate={{ y: [0, -25, 0], opacity: [0.15, 0.5, 0.15], scale: [1, 1.3, 1] }}
-          transition={{ duration: p.duration, repeat: Infinity, delay: p.delay, ease: "easeInOut" }}
+          key={index}
+          className="absolute h-px"
+          style={{
+            top: beam.top,
+            left: beam.left,
+            width: beam.width,
+            background:
+              "linear-gradient(90deg, transparent 0%, rgba(77,163,255,0.18) 40%, rgba(25,195,125,0.16) 60%, transparent 100%)",
+            opacity: beam.opacity,
+          }}
+          animate={{ x: [0, 28, -10, 0] }}
+          transition={{ duration: beam.duration, repeat: Infinity, ease: "easeInOut" }}
         />
       ))}
 
-      {/* Geometric grid */}
-      <div
-        className="absolute inset-0"
-        style={{
-          backgroundImage: `linear-gradient(rgba(227,24,55,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(227,24,55,0.025) 1px, transparent 1px)`,
-          backgroundSize: "80px 80px",
-        }}
-      />
+      {dots.map((dot) => (
+        <motion.div
+          key={dot.id}
+          className="absolute h-1 w-1 rounded-full bg-white/18"
+          style={{ left: dot.left, top: dot.top }}
+          animate={{ opacity: [0.15, 0.45, 0.15], y: [0, -18, 0] }}
+          transition={{ duration: dot.duration, repeat: Infinity, ease: "easeInOut" }}
+        />
+      ))}
+
+      <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#050c16] to-transparent" />
     </div>
   );
 }

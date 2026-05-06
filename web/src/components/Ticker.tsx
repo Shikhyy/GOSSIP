@@ -1,40 +1,69 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { TrendingUp, TrendingDown } from "lucide-react";
+import { Activity, ArrowUpRight, Bot, Sparkles, TrendingDown, TrendingUp } from "lucide-react";
+import { formatCompactCurrency, formatPercent } from "@/lib/demo-data";
 
 const tickerItems = [
-  { label: "SOL Price", value: "$198.42", change: "+2.4%", up: true },
-  { label: "BTC Price", value: "$64,234", change: "+1.2%", up: true },
-  { label: "ETH Price", value: "$3,421", change: "-0.8%", up: false },
-  { label: "Active Markets", value: "18", change: "+3", up: true },
-  { label: "24h Volume", value: "$2.4M", change: "+12%", up: true },
-  { label: "AI Agents", value: "47", change: "+5", up: true },
+  {
+    label: "Market Volume",
+    value: formatCompactCurrency(2400000),
+    change: formatPercent(12.1),
+    icon: Activity,
+    up: true,
+  },
+  {
+    label: "SOL Close Consensus",
+    value: "$198.42",
+    change: formatPercent(2.4),
+    icon: TrendingUp,
+    up: true,
+  },
+  {
+    label: "Agent Flow",
+    value: "$214K",
+    change: formatPercent(4.7),
+    icon: Bot,
+    up: true,
+  },
+  {
+    label: "Tail Vol",
+    value: "24.5",
+    change: formatPercent(-1.2),
+    icon: TrendingDown,
+    up: false,
+  },
+  {
+    label: "Resolved Today",
+    value: "14",
+    change: "+3",
+    icon: Sparkles,
+    up: true,
+  },
 ];
 
 export default function Ticker() {
   return (
-    <div className="overflow-hidden py-3" style={{ background: "rgba(227,24,55,0.05)", borderBottom: "1px solid rgba(227,24,55,0.1)" }}>
-      <motion.div
-        animate={{ x: ["0%", "-50%"] }}
-        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-        className="flex gap-12 whitespace-nowrap"
-      >
-        {[...tickerItems, ...tickerItems].map((item, i) => (
-          <div key={i} className="flex items-center gap-3">
-            <span className="text-xs uppercase tracking-wider" style={{ color: "#666" }}>
-              {item.label}
-            </span>
-            <span className="font-mono text-sm font-semibold text-white">
-              {item.value}
-            </span>
-            <span className={`text-xs font-medium flex items-center gap-1 ${item.up ? "text-green-500" : "text-red-500"}`}>
-              {item.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
-              {item.change}
-            </span>
-          </div>
-        ))}
-      </motion.div>
+    <div className="border-b border-white/6 bg-[#091320]/95">
+      <div className="mx-auto max-w-7xl overflow-hidden px-4">
+        <motion.div
+          className="flex min-w-max gap-10 py-2.5"
+          animate={{ x: ["0%", "-50%"] }}
+          transition={{ duration: 24, repeat: Infinity, ease: "linear" }}
+        >
+          {[...tickerItems, ...tickerItems].map((item, index) => (
+            <div key={`${item.label}-${index}`} className="flex items-center gap-3 whitespace-nowrap text-sm">
+              <item.icon className="h-3.5 w-3.5 text-[#4da3ff]" />
+              <span className="text-xs uppercase tracking-[0.08em] text-[#8fa4c2]">{item.label}</span>
+              <span className="font-mono text-sm font-semibold text-white">{item.value}</span>
+              <span className={`inline-flex items-center gap-1 text-xs font-medium ${item.up ? "text-[#19c37d]" : "text-[#ff5f6d]"}`}>
+                {item.up ? <ArrowUpRight className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                {item.change}
+              </span>
+            </div>
+          ))}
+        </motion.div>
+      </div>
     </div>
   );
 }
