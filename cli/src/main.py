@@ -2,7 +2,7 @@ import click
 import asyncio
 from solana.rpc.async_api import AsyncClient
 from anchorpy import Provider, Wallet
-from solana.keypair import Keypair
+from solders.keypair import Keypair
 import json
 import random
 import math
