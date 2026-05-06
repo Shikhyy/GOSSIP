@@ -168,29 +168,36 @@ export default function PortfolioPage() {
         </motion.div>
 
         {/* Summary Cards */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-10">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {[
-            { label: "Total Value", value: "$4,247.80" },
-            { label: "Unrealized P&L", value: "+$312.50", accent: true },
-            { label: "Active Positions", value: "4", accent: true },
-            { label: "Win Rate", value: "62.5%" },
+            { label: "Net Worth", value: "$4,247.80", detail: "Total Asset Value" },
+            { label: "AI Correlation", value: "84%", detail: "Alignment with Agents", accent: true },
+            { label: "Agent Alpha", value: "+4.2%", detail: "Vs Machine Avg", accent: true },
+            { label: "Profit Factor", value: "2.4x", detail: "Win/Loss Ratio" },
           ].map((stat, i) => (
-            <div key={stat.label} className="p-5" style={{ background: stat.accent ? "#4A0404" : "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}>
-              <p className="text-2xl font-bold text-white">{stat.value}</p>
-              <p className="text-[10px] uppercase tracking-wider mt-1" style={{ color: "#999999" }}>{stat.label}</p>
+            <div key={stat.label} className="p-6 relative group overflow-hidden" style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.15)" }}>
+              <div className={`absolute top-0 right-0 w-32 h-32 blur-3xl -mr-16 -mt-16 transition-colors ${stat.accent ? "bg-blue-500/10" : "bg-white/5"}`} />
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] mb-2" style={{ color: "#666" }}>{stat.label}</p>
+              <p className="text-3xl font-black text-white tracking-tighter mb-1">{stat.value}</p>
+              <p className="text-[9px] font-bold uppercase tracking-widest" style={{ color: "#444" }}>{stat.detail}</p>
             </div>
           ))}
         </motion.div>
 
         {/* Portfolio Performance Chart */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-8">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-[2px]" style={{ background: "#E31837" }} />
-            <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: "#C25B5B" }}>Performance</span>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.2 }} className="mb-12 p-8" style={{ background: "#0D0202", border: "1px solid rgba(227,24,55,0.2)" }}>
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <BarChart3 className="w-5 h-5 text-[#E31837]" />
+              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white">Value Projection (30D)</h2>
+            </div>
+            <div className="flex gap-4">
+              <span className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-2" style={{ color: "#666" }}><span className="w-2 h-2 rounded-full bg-red-500" /> Net Equity</span>
+            </div>
           </div>
-          <div className="h-48">
-  <PortfolioChart />
-</div>
+          <div className="h-64">
+            <PortfolioChart />
+          </div>
         </motion.div>
 
         {/* Active Positions */}

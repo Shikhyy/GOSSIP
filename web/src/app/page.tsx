@@ -97,24 +97,21 @@ export default function Home() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.1 }}
-                className="text-5xl sm:text-6xl lg:text-7xl font-bold tracking-tight text-white leading-[1.05] mb-6"
+                className="text-6xl sm:text-7xl lg:text-8xl font-black tracking-tighter text-white leading-[0.9] mb-8"
               >
-                SMART
-                <br />
-                <span className="gradient-red">INTUITIVE</span>
-                <br />
-                BOLD
+                GOSSIP<br />
+                <span className="gradient-red">PROTOCOL</span>
               </motion.h1>
 
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.7, delay: 0.25 }}
-                className="text-base sm:text-lg max-w-lg mb-10 leading-relaxed"
+                className="text-lg sm:text-xl max-w-lg mb-12 leading-relaxed font-medium"
                 style={{ color: "#999999" }}
               >
-                The first continuous prediction market on Solana. Bet on exact values
-                with infinite upside. AI agents, yield-bearing pools, Gaussian AMM.
+                The Infinite Upside Continuous Prediction Market. 
+                Where human intuition meets machine intelligence on the Solana blockchain.
               </motion.p>
 
               <motion.div
@@ -184,16 +181,81 @@ export default function Home() {
             <motion.div
               key={stat.label}
               variants={itemVariants}
-              className="p-6"
+              className="p-6 relative group overflow-hidden"
               style={{ background: i === 1 || i === 2 ? "#4A0404" : "#1A0808", border: "1px solid rgba(227,24,55,0.1)" }}
             >
-              <p className="text-2xl sm:text-3xl font-bold text-white mb-1">
+              <div className="absolute inset-0 bg-white/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
+              <p className="text-2xl sm:text-3xl font-bold text-white mb-1 relative z-10">
                 <CountUp value={stat.value} suffix={stat.label.includes('%') ? '%' : ''} prefix={stat.label.includes('$') ? '$' : ''} />
               </p>
-              <p className="text-xs uppercase tracking-wider" style={{ color: "#999999" }}>{stat.label}</p>
+              <p className="text-xs uppercase tracking-wider relative z-10" style={{ color: "#999999" }}>{stat.label}</p>
             </motion.div>
           ))}
         </motion.div>
+      </section>
+
+      {/* Human vs Machine Section */}
+      <section className="px-4 py-24 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-px bg-white/5" />
+        <div className="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+          <motion.div
+            initial={{ opacity: 0, x: -40 }}
+            whileInView={{ opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            className="space-y-8"
+          >
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-[#E31837]" />
+              <span className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: "#C25B5B" }}>The Arena</span>
+            </div>
+            <h2 className="text-4xl sm:text-5xl font-bold text-white leading-[1.1]">
+              HUMAN INTUITION<br />
+              <span className="text-white/20">VS</span><br />
+              MACHINE LOGIC
+            </h2>
+            <p className="text-lg text-neutral-400 leading-relaxed max-w-md">
+              GOSSIP is a multi-sided ecosystem designed to pit human edge against 
+              autonomous machine learning algorithms.
+            </p>
+            <div className="grid grid-cols-2 gap-6 pt-4">
+              <div>
+                <p className="text-xl font-bold text-white mb-1">WORLD ID</p>
+                <p className="text-xs uppercase tracking-widest text-[#999]">Verified Humans</p>
+              </div>
+              <div>
+                <p className="text-xl font-bold text-white mb-1">MCP SDK</p>
+                <p className="text-xs uppercase tracking-widest text-[#999]">Autonomous Agents</p>
+              </div>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="relative p-12 aspect-square flex items-center justify-center"
+            style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.15)" }}
+          >
+            <div className="absolute inset-0 grid-bg opacity-10" />
+            <div className="relative z-10 w-full h-full flex items-center justify-center">
+               <div className="w-full h-px bg-red-500/20 absolute rotate-45" />
+               <div className="w-full h-px bg-red-500/20 absolute -rotate-45" />
+               <div className="w-24 h-24 rounded-full border-2 border-red-500 flex items-center justify-center bg-black">
+                 <Cpu className="w-10 h-10 text-red-500" />
+               </div>
+               <motion.div 
+                 animate={{ rotate: 360 }}
+                 transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                 className="absolute w-48 h-48 border border-white/5 rounded-full"
+               />
+               <motion.div 
+                 animate={{ rotate: -360 }}
+                 transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+                 className="absolute w-64 h-64 border border-white/5 rounded-full"
+               />
+            </div>
+          </motion.div>
+        </div>
       </section>
 
       {/* Features — Grid with Red Accent */}
