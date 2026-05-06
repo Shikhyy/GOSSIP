@@ -25,6 +25,34 @@ const markets = [
     status: "live",
     endsIn: "2d 14h",
     color: "from-purple-500/20 to-cyan-500/20",
+    trending: true,
+  },
+  {
+    id: "firedancer-outage",
+    title: "Solana Firedancer: First Mainnet Outage within 30 days?",
+    category: "Crypto",
+    mu: 5,
+    sigma: 10,
+    liquidity: 45000,
+    volume: 120000,
+    status: "live",
+    endsIn: "28d",
+    color: "from-blue-500/20 to-indigo-500/20",
+    aiGenerated: true,
+  },
+  {
+    id: "gpt-5-mmlu",
+    title: "GPT-5.5 MMLU Score surpassing 95%?",
+    category: "AI",
+    mu: 95.2,
+    sigma: 1.5,
+    liquidity: 89000,
+    volume: 340000,
+    status: "live",
+    endsIn: "15d",
+    color: "from-cyan-500/20 to-blue-500/20",
+    aiGenerated: true,
+    trending: true,
   },
   {
     id: "btc-etf",
@@ -61,30 +89,7 @@ const markets = [
     status: "live",
     endsIn: "12d 6h",
     color: "from-rose-500/20 to-pink-500/20",
-  },
-  {
-    id: "eth-gas",
-    title: "ETH Average Gas Price (gwei)",
-    category: "Crypto",
-    mu: 28.4,
-    sigma: 12.1,
-    liquidity: 18900,
-    volume: 78000,
-    status: "live",
-    endsIn: "1d 22h",
-    color: "from-violet-500/20 to-purple-500/20",
-  },
-  {
-    id: "ai-benchmark",
-    title: "GPT-5 MMLU Score (%)",
-    category: "AI",
-    mu: 89.2,
-    sigma: 3.5,
-    liquidity: 56700,
-    volume: 210000,
-    status: "upcoming",
-    endsIn: "45d",
-    color: "from-cyan-500/20 to-blue-500/20",
+    trending: true,
   },
 ];
 
@@ -129,35 +134,76 @@ export default function MarketsPage() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
-          className="mb-10"
+          className="mb-12 relative overflow-hidden"
         >
-          <div className="relative overflow-hidden p-8" style={{ background: "linear-gradient(135deg, #4A0404 0%, #1A0808 100%)", border: "1px solid rgba(227,24,55,0.3)" }}>
-            <div className="absolute top-0 right-0 w-64 h-64 opacity-10" style={{ background: "radial-gradient(circle, #E31837 0%, transparent 70%)" }} />
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-2 h-2 animate-pulse" style={{ background: "#22C55E" }} />
-                <span className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#22C55E" }}>FEATURED</span>
+          <div className="absolute inset-0 grid-bg opacity-10" />
+          <div className="relative p-10 lg:p-14" style={{ background: "linear-gradient(135deg, #1A0808 0%, #0D0202 100%)", border: "1px solid rgba(227,24,55,0.25)" }}>
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] opacity-10 -mr-48 -mt-48" style={{ background: "radial-gradient(circle, #E31837 0%, transparent 70%)" }} />
+            <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
+              <div>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="w-10 h-px" style={{ background: "#E31837" }} />
+                  <span className="text-xs font-bold uppercase tracking-[0.4em]" style={{ color: "#E31837" }}>Active Arena</span>
+                </div>
+                <h1 className="text-5xl lg:text-7xl font-black text-white mb-6 tracking-tighter leading-none uppercase">
+                  Discover<br /><span className="gradient-red">Alpha</span>
+                </h1>
+                <p className="text-neutral-400 max-w-sm mb-8 leading-relaxed">
+                  Join the machine war. Predict continuous outcomes on Solana with mathematically infinite upside.
+                </p>
+                <Link href="/markets/create" className="group inline-flex items-center gap-3 px-8 py-4 text-xs font-bold uppercase tracking-widest text-white transition-all hover:scale-105" style={{ background: "#E31837" }}>
+                  <Plus className="w-4 h-4" /> Create New Market
+                </Link>
               </div>
-              <h1 className="text-4xl font-bold text-white mb-2">MARKETS</h1>
-              <p style={{ color: "#999999" }}>Continuous prediction markets with infinite upside</p>
-              <Link href="/markets/create" className="inline-flex items-center gap-2 mt-4 px-4 py-2 text-sm font-semibold uppercase tracking-wider text-white transition-all hover:scale-105" style={{ background: "#E31837" }}>
-                <Plus className="w-4 h-4" /> Create Market
-              </Link>
-              <div className="flex items-center gap-6 mt-6 pt-6" style={{ borderTop: "1px solid rgba(227,24,55,0.15)" }}>
+              <div className="flex items-center gap-12 pb-2">
                 <div>
-                  <p className="text-2xl font-bold text-white">$2.4M</p>
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#999999" }}>Total Volume</p>
+                  <p className="text-4xl font-black text-white mb-1 tracking-tight">$2.4M</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#666" }}>Total Volume</p>
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-white">18</p>
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#999999" }}>Active Markets</p>
-                </div>
-                <div>
-                  <p className="text-2xl font-bold text-white">47</p>
-                  <p className="text-[10px] uppercase tracking-wider" style={{ color: "#999999" }}>AI Agents</p>
+                  <p className="text-4xl font-black text-white mb-1 tracking-tight">18</p>
+                  <p className="text-[10px] font-bold uppercase tracking-widest" style={{ color: "#666" }}>Live Markets</p>
                 </div>
               </div>
             </div>
+          </div>
+        </motion.div>
+
+        {/* Machine War: AI Agent Activity */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mb-10 p-6"
+          style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.2)" }}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Activity className="w-5 h-5 text-[#E31837]" />
+              <h2 className="text-sm font-bold uppercase tracking-[0.2em] text-white">The Machine War: Live Agent Activity</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <span className="text-[10px] font-bold text-green-500 uppercase tracking-widest">47 Agents Active</span>
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[
+              { agent: "LSTM-v1_arb", action: "Placed 450 CASH bet on SOL @ $212.50", time: "2m ago", confidence: "89%" },
+              { agent: "GPT4_sentiment", action: "Shifted consensus mu by +1.2 on 'Fed Rate'", time: "5m ago", confidence: "74%" },
+              { agent: "BlackSwan_detector", action: "Detected 3-sigma anomaly in 'NYC Temp'", time: "12m ago", confidence: "92%" },
+            ].map((log, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
+                <div className="flex items-center gap-4">
+                  <span className="font-mono text-[10px] px-2 py-0.5 bg-white/5 text-white/50">{log.agent}</span>
+                  <span className="text-xs text-white/80">{log.action}</span>
+                </div>
+                <div className="flex items-center gap-4">
+                  <span className="text-[10px] font-bold text-[#E31837]">CONF: {log.confidence}</span>
+                  <span className="text-[10px] uppercase text-white/30">{log.time}</span>
+                </div>
+              </div>
+            ))}
           </div>
         </motion.div>
 
@@ -169,26 +215,26 @@ export default function MarketsPage() {
           className="flex flex-col sm:flex-row gap-4 mb-8"
         >
           <div className="relative flex-1 max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#999999" }} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style={{ color: "#E31837" }} />
             <input
               type="text"
-              placeholder="Search markets..."
+              placeholder="Filter by title, category, or agent..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 text-sm text-white placeholder:text-neutral-500 focus:outline-none transition-all"
-              style={{ background: "#1A0808", border: "1px solid rgba(227,24,55,0.12)" }}
+              className="w-full pl-12 pr-4 py-4 text-xs font-bold uppercase tracking-widest text-white placeholder:text-white/20 focus:outline-none transition-all"
+              style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}
             />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 scrollbar-hide">
             {categories.map((cat, i) => (
               <button
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
-                className="px-4 py-2 text-xs font-semibold uppercase tracking-wider transition-all"
+                className="px-6 py-4 text-[10px] font-bold uppercase tracking-[0.2em] transition-all whitespace-nowrap"
                 style={{
-                  background: selectedCategory === cat ? "#E31837" : "transparent",
+                  background: selectedCategory === cat ? "#E31837" : "rgba(255,255,255,0.03)",
                   color: "#FFFFFF",
-                  border: selectedCategory === cat ? "none" : "1px solid rgba(255,255,255,0.1)",
+                  border: selectedCategory === cat ? "1px solid #E31837" : "1px solid rgba(255,255,255,0.08)",
                 }}
               >
                 {cat}
@@ -216,15 +262,27 @@ export default function MarketsPage() {
                 >
                   {/* Top Row */}
                   <div className="flex items-center justify-between mb-4">
-                    <span
-                      className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider"
-                      style={{
-                        background: market.status === "live" ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)",
-                        color: market.status === "live" ? "#22C55E" : "#EAB308",
-                      }}
-                    >
-                      {market.status === "live" ? "LIVE" : "UPCOMING"}
-                    </span>
+                    <div className="flex gap-2">
+                      <span
+                        className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider"
+                        style={{
+                          background: market.status === "live" ? "rgba(34,197,94,0.1)" : "rgba(234,179,8,0.1)",
+                          color: market.status === "live" ? "#22C55E" : "#EAB308",
+                        }}
+                      >
+                        {market.status === "live" ? "LIVE" : "UPCOMING"}
+                      </span>
+                      {(market as any).aiGenerated && (
+                        <span className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider bg-blue-500/10 text-blue-500 border border-blue-500/20">
+                          AI GENERATED
+                        </span>
+                      )}
+                      {(market as any).trending && (
+                        <span className="text-[10px] font-bold px-2 py-1 uppercase tracking-wider bg-amber-500/10 text-amber-500 border border-amber-500/20">
+                          TRENDING
+                        </span>
+                      )}
+                    </div>
                     <span className="text-xs flex items-center gap-1" style={{ color: "#999999" }}>
                       <Clock className="w-3 h-3" /> {market.endsIn}
                     </span>
