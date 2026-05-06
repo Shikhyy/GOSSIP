@@ -20,7 +20,13 @@ interface BellCurveProps {
   agentSigma?: number;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+interface BellCurveTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value?: number }>;
+  label?: string | number;
+}
+
+const CustomTooltip = ({ active, payload, label }: BellCurveTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="p-3 shadow-2xl" style={{ background: "rgba(13, 2, 2, 0.95)", border: "1px solid rgba(227, 24, 55, 0.4)", backdropFilter: "blur(8px)" }}>
@@ -64,7 +70,7 @@ const BellCurve: React.FC<BellCurveProps> = ({ mu, sigma, prediction, agentMu, a
   return (
     <div className="w-full h-full relative">
       <div className="absolute inset-0 grid-bg opacity-30 pointer-events-none" />
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
         <AreaChart data={data} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
           <defs>
             <linearGradient id="bellFill" x1="0" y1="0" x2="0" y2="1">

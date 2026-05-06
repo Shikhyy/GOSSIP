@@ -1,91 +1,80 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import {
-  AreaChart,
   Area,
+  AreaChart,
+  ResponsiveContainer,
+  Tooltip,
   XAxis,
   YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
 } from "recharts";
 
+interface PortfolioChartProps {
+  points?: number[];
+}
+
 interface PortfolioDataPoint {
-  date: string;
+  label: string;
   value: number;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="p-4 shadow-2xl" style={{ background: "rgba(13, 2, 2, 0.95)", border: "1px solid rgba(227, 24, 55, 0.4)", backdropFilter: "blur(12px)" }}>
-        <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1 text-neutral-500">{label}</p>
-        <p className="text-xl font-black text-white">${payload[0].value.toLocaleString()}</p>
-      </div>
-    );
-  }
-  return null;
-};
+interface PortfolioTooltipProps {
+  active?: boolean;
+  payload?: Array<{ value?: number }>;
+  label?: string | number;
+}
 
-export default function PortfolioChart() {
-  const [data, setData] = useState<PortfolioDataPoint[]>([]);
+const defaultSeries = [
+  4040, 4068, 4095, 4112, 4106, 4130, 4178, 4216, 4201, 4238,
+  4250, 4286, 4305, 4292, 4320, 4355, 4381, 4418, 4446, 4461,
+  4484, 4516, 4550, 4532, 4579, 4614, 4630, 4671, 4698, 4722,
+];
 
-  useEffect(() => {
-    // Generate sample data for last 30 days
-    const sampleData: PortfolioDataPoint[] = [];
-    let value = 4247.80;
-    const today = new Date();
-
-    for (let i = 29; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      const change = (Math.random() - 0.45) * 0.015; // Subtle upward trend
-      value = value * (1 + change);
-      sampleData.push({
-        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
-        value: Math.round(value * 100) / 100,
-      });
-    }
-    setData(sampleData);
-  }, []);
-
-  if (data.length === 0) {
-    return <div className="h-48 flex items-center justify-center text-white/50">Loading chart...</div>;
-  }
+function CustomTooltip({ active, payload, label }: PortfolioTooltipProps) {
+  if (!active || !payload?.length) return null;
+  const value = payload[0]?.value ?? 0;
 
   return (
-    <div className="w-full h-full relative group">
-      <div className="absolute inset-0 grid-bg opacity-20 pointer-events-none" />
-      <ResponsiveContainer width="100%" height={240}>
-        <AreaChart data={data} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+    <div className="rounded-2xl border border-white/10 bg-[#08101d]/95 px-4 py-3 shadow-2xl">
+      <p className="text-[11px] uppercase tracking-[0.08em] text-[#8fa4c2]">{label}</p>
+      <p className="mt-1 text-lg font-semibold text-white">${value.toLocaleString()}</p>
+    </div>
+  );
+}
+
+export default function PortfolioChart({ points = defaultSeries }: PortfolioChartProps) {
+  const data = useMemo<PortfolioDataPoint[]>(
+    () =>
+      points.map((value, index) => ({
+        label: `D${index + 1}`,
+        value,
+      })),
+    [points]
+  );
+
+  return (
+    <div className="relative h-full w-full">
+      <div className="absolute inset-0 grid-panel opacity-25" />
+      <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+        <AreaChart data={data} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
           <defs>
-            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#E31837" stopOpacity={0.3} />
-              <stop offset="100%" stopColor="#E31837" stopOpacity={0} />
+            <linearGradient id="portfolio-fill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="#19c37d" stopOpacity={0.35} />
+              <stop offset="100%" stopColor="#19c37d" stopOpacity={0.02} />
             </linearGradient>
-            <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-              <feGaussianBlur stdDeviation="3" result="blur" />
-              <feComposite in="SourceGraphic" in2="blur" operator="over" />
-            </filter>
           </defs>
-          <XAxis 
-            dataKey="date" 
-            hide={true}
-          />
-          <YAxis 
-            hide={true} 
-            domain={['dataMin - 100', 'dataMax + 100']}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke="#E31837" 
-            strokeWidth={3} 
-            fill="url(#chartFill)" 
-            animationDuration={1500}
-            style={{ filter: "url(#glow)" }}
+          <XAxis dataKey="label" hide />
+          <YAxis hide domain={["dataMin - 60", "dataMax + 80"]} />
+          <Tooltip content={<CustomTooltip />} cursor={{ stroke: "rgba(77,163,255,0.28)", strokeWidth: 1 }} />
+          <Area
+            type="monotone"
+            dataKey="value"
+            stroke="#4da3ff"
+            strokeWidth={2.8}
+            fill="url(#portfolio-fill)"
+            animationDuration={1100}
+            className="chart-glow"
           />
         </AreaChart>
       </ResponsiveContainer>
