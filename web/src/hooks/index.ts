@@ -1,11 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo } from "react";
+import { useToast as useToastContext } from "@/components/Toast";
+import {
+  useMarketData as useMarketDataSource,
+  type MarketData as FullMarketData,
+} from "./useMarketData";
+import { useWalletBalance as useWalletBalanceSource } from "./useWalletBalance";
+import {
+  useUserPositions as useUserPositionsSource,
+  type Position,
+} from "./useUserPositions";
 
 export interface MarketData {
   mu: number;
   sigma: number;
   liquidity: number;
+  loading: boolean;
+  error: string | null;
 }
 
 export interface UserPosition {
@@ -20,44 +32,88 @@ export interface UserPosition {
 
 export interface WalletBalance {
   balance: number;
+  solBalance: number;
+  loading: boolean;
 }
 
-export function useMarketData(_marketId: string): MarketData {
-  const [data] = useState<MarketData>(() => ({
-    mu: 198.42 + Math.random() * 10,
-    sigma: 24.5 + Math.random() * 5,
-    liquidity: 124500 + Math.floor(Math.random() * 10000),
-  }));
+function formatDistanceFromNow(timestamp: number) {
+  const diffMs = Date.now() - timestamp;
+  const diffHours = Math.max(1, Math.floor(diffMs / (1000 * 60 * 60)));
 
-  return data;
+  if (diffHours < 24) {
+    return `${diffHours}h ago`;
+  }
+
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
+  return `${Math.floor(diffDays / 7)}w ago`;
+}
+
+function deriveCurrentPnl(position: Position) {
+  if (!position.initialMu) {
+    return "0.0%";
+  }
+
+  const relativeMove =
+    ((position.point - position.initialMu) / position.initialMu) * 100;
+  const pnl = Math.max(-99.9, relativeMove * 0.6);
+  const sign = pnl >= 0 ? "+" : "";
+  return `${sign}${pnl.toFixed(1)}%`;
+}
+
+export function useMarketData(marketId: string): MarketData {
+  const source = useMarketDataSource(marketId);
+
+  return {
+    mu: source.data?.mu ?? 198.42,
+    sigma: source.data?.sigma ?? 24.5,
+    liquidity: source.data?.totalLiquidity ?? 124500,
+    loading: source.loading,
+    error: source.error,
+  };
 }
 
 export function useWalletBalance(): WalletBalance {
-  return { balance: 5000 };
+  const source = useWalletBalanceSource();
+
+  return {
+    balance: source.balance,
+    solBalance: source.solBalance,
+    loading: source.loading,
+  };
 }
 
 export function useToast() {
-  const showToast = (message: string, type: "success" | "error" | "info" = "info") => {
-    console.log(`[${type.toUpperCase()}] ${message}`);
+  return useToastContext();
+}
+
+export function useUserPositions(): {
+  positions: UserPosition[];
+  isLoading: boolean;
+} {
+  const source = useUserPositionsSource();
+
+  const positions = useMemo(
+    () =>
+      source.positions.map((position) => ({
+        market: position.marketTitle,
+        prediction: position.point,
+        stake: position.amount,
+        currentPnl: deriveCurrentPnl(position),
+        status: position.settled ? "settled" : "active",
+        entered: formatDistanceFromNow(position.createdAt),
+        mu: position.initialMu,
+      })),
+    [source.positions]
+  );
+
+  return {
+    positions,
+    isLoading: source.loading,
   };
-
-  return { showToast };
 }
 
-export function useUserPositions(): { positions: UserPosition[]; isLoading: boolean } {
-  const [positions] = useState<UserPosition[]>(() => [
-    {
-      market: "Will SOL hit $250 by Friday?",
-      prediction: 245.0,
-      stake: 50,
-      currentPnl: "+12.4%",
-      status: "active",
-      entered: "2 days ago",
-      mu: 198.42,
-    },
-  ]);
-
-  const isLoading = false;
-
-  return { positions, isLoading };
-}
+export type { FullMarketData, Position };

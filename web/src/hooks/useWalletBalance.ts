@@ -24,7 +24,7 @@ export function useWalletBalance() {
         const solBal = await connection.getBalance(wallet.publicKey);
         setSolBalance(solBal / LAMPORTS_PER_SOL);
         setBalance(DEMO_BALANCE);
-      } catch (err) {
+      } catch {
         setBalance(DEMO_BALANCE);
       } finally {
         setLoading(false);

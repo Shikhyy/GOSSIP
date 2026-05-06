@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
-import { Program, AnchorProvider, web3, Idl, BN } from "@coral-xyz/anchor";
+import { Program, AnchorProvider, Idl } from "@coral-xyz/anchor";
 import { Gossip } from "@/idl/gossip";
 import IDL from "@/idl/gossip.json";
-
-const PROGRAM_ID = new web3.PublicKey(
-  "9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi"
-);
 
 export interface Position {
   marketTitle: string;
@@ -19,6 +15,17 @@ export interface Position {
   settled: boolean;
   payout: number;
   createdAt: number;
+}
+
+interface RawPredictionAccount {
+  marketTitle?: string;
+  point: number;
+  amount: { toNumber(): number };
+  initialMu: number;
+  initialSigma: number;
+  settled?: boolean;
+  payout?: number;
+  createdAt?: number;
 }
 
 const DEMO_POSITIONS: Position[] = [
@@ -37,6 +44,7 @@ const DEMO_POSITIONS: Position[] = [
 export function useUserPositions() {
   const { connection } = useConnection();
   const wallet = useWallet();
+  const walletAddress = wallet.publicKey?.toBase58();
   const [positions, setPositions] = useState<Position[]>(DEMO_POSITIONS);
   const [loading, setLoading] = useState(false);
 
@@ -44,13 +52,13 @@ export function useUserPositions() {
     if (!connection || !wallet.publicKey) return null;
     const provider = new AnchorProvider(
       connection,
-      wallet as any,
+      wallet as AnchorProvider["wallet"],
       { commitment: "confirmed" }
     );
     return new Program(IDL as Idl, provider) as unknown as Program<Gossip>;
   }, [connection, wallet]);
 
-  const fetchPositions = async () => {
+  const fetchPositions = useCallback(async () => {
     if (!program || !wallet.publicKey) {
       setPositions(DEMO_POSITIONS);
       return;
@@ -65,28 +73,32 @@ export function useUserPositions() {
           },
         },
       ]);
-      setPositions(
-        allPositions.map((p) => ({
-          marketTitle: (p.account as any).marketTitle || "",
-          point: p.account.point,
-          amount: p.account.amount.toNumber(),
-          initialMu: p.account.initialMu,
-          initialSigma: p.account.initialSigma,
-          settled: (p.account as any).settled || false,
-          payout: (p.account as any).payout || 0,
-          createdAt: ((p.account as any).createdAt || 0) * 1000,
-        }))
-      );
-    } catch (err) {
+      setPositions(allPositions.map((p) => {
+        const account = p.account as RawPredictionAccount;
+        return {
+          marketTitle: account.marketTitle || "",
+          point: account.point,
+          amount: account.amount.toNumber(),
+          initialMu: account.initialMu,
+          initialSigma: account.initialSigma,
+          settled: account.settled || false,
+          payout: account.payout || 0,
+          createdAt: (account.createdAt || 0) * 1000,
+        };
+      }));
+    } catch {
       setPositions(DEMO_POSITIONS);
     } finally {
       setLoading(false);
     }
-  };
+  }, [program, wallet.publicKey]);
 
   useEffect(() => {
-    fetchPositions();
-  }, [program, wallet.publicKey?.toBase58()]);
+    const timeoutId = window.setTimeout(() => {
+      void fetchPositions();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchPositions, walletAddress]);
 
   return { positions, loading, refetch: fetchPositions };
 }

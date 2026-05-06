@@ -1,19 +1,26 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useConnection } from "@solana/wallet-adapter-react";
 import { Program, AnchorProvider, web3, Idl } from "@coral-xyz/anchor";
 import idlJson from "@/idl/gossip.json";
-
-const PROGRAM_ID = new web3.PublicKey(
-  "9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi"
-);
+import { Gossip } from "@/idl/gossip";
 
 export interface MarketData {
   mu: number;
   sigma: number;
   b: number;
   totalLiquidity: number;
+  resolved: boolean;
+  finalOutcome?: number;
+  title: string;
+}
+
+interface RawMarketAccount {
+  mu: number;
+  sigma: number;
+  b: number;
+  totalLiquidity: { toNumber(): number };
   resolved: boolean;
   finalOutcome?: number;
   title: string;
@@ -48,13 +55,13 @@ export function useMarketData(marketTitle: string) {
     if (!connection) return null;
     const provider = new AnchorProvider(
       connection,
-      {} as any,
+      {} as AnchorProvider["wallet"],
       { commitment: "confirmed" }
     );
-    return new Program(idlJson as Idl, provider) as any;
+    return new Program(idlJson as Idl, provider) as unknown as Program<Gossip>;
   }, [connection]);
 
-  const fetchMarket = async () => {
+  const fetchMarket = useCallback(async () => {
     if (!program) {
       const demo = DEMO_DATA[marketTitle];
       if (demo) {
@@ -71,18 +78,20 @@ export function useMarketData(marketTitle: string) {
         [Buffer.from("market"), Buffer.from(marketTitle)],
         program.programId
       );
-      const marketAccount = await program.account.market.fetch(marketPda);
+      const marketAccount = await program.account.market.fetch(
+        marketPda
+      ) as RawMarketAccount;
       setData({
-        mu: (marketAccount as any).mu,
-        sigma: (marketAccount as any).sigma,
-        b: (marketAccount as any).b,
-        totalLiquidity: (marketAccount as any).totalLiquidity.toNumber(),
-        resolved: (marketAccount as any).resolved,
-        finalOutcome: (marketAccount as any).finalOutcome,
-        title: (marketAccount as any).title,
+        mu: marketAccount.mu,
+        sigma: marketAccount.sigma,
+        b: marketAccount.b,
+        totalLiquidity: marketAccount.totalLiquidity.toNumber(),
+        resolved: marketAccount.resolved,
+        finalOutcome: marketAccount.finalOutcome,
+        title: marketAccount.title,
       });
       setError(null);
-    } catch (err) {
+    } catch {
       const demo = DEMO_DATA[marketTitle];
       if (demo) {
         setData(demo);
@@ -93,13 +102,18 @@ export function useMarketData(marketTitle: string) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [marketTitle, program]);
 
   useEffect(() => {
-    fetchMarket();
+    const timeoutId = window.setTimeout(() => {
+      void fetchMarket();
+    }, 0);
     const interval = setInterval(fetchMarket, 5000);
-    return () => clearInterval(interval);
-  }, [program, marketTitle]);
+    return () => {
+      window.clearTimeout(timeoutId);
+      clearInterval(interval);
+    };
+  }, [fetchMarket]);
 
   return { data, loading, error, refetch: fetchMarket };
 }
