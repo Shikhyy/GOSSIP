@@ -29,11 +29,20 @@ interface BellCurveTooltipProps {
 const CustomTooltip = ({ active, payload, label }: BellCurveTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="p-3 shadow-2xl" style={{ background: "rgba(13, 2, 2, 0.95)", border: "1px solid rgba(227, 24, 55, 0.4)", backdropFilter: "blur(8px)" }}>
-        <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1" style={{ color: "#E31837" }}>Market Density</p>
-        <p className="text-sm font-mono font-bold text-white">Target: {label}</p>
-        <p className="text-xs font-mono text-white/50">Human: {payload[0]?.value?.toExponential(4)}</p>
-        {payload[1] && <p className="text-xs font-mono text-blue-400">Agent: {payload[1]?.value?.toExponential(4)}</p>}
+      <div 
+        className="p-3 shadow-2xl" 
+        style={{ 
+          background: "rgba(13, 2, 2, 0.95)", 
+          border: "1px solid rgba(227, 24, 55, 0.4)", 
+          backdropFilter: "blur(8px)",
+          borderRadius: "12px",
+          fontFamily: "'DM Sans', sans-serif"
+        }}
+      >
+        <p className="text-[10px] uppercase tracking-[0.2em] font-bold mb-1" style={{ color: "#E31837", fontFamily: "Sora, sans-serif" }}>Market Density</p>
+        <p className="text-sm font-mono font-bold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Target: {label}</p>
+        <p className="text-xs font-mono text-white/50" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Human: {payload[0]?.value?.toExponential(4)}</p>
+        {payload[1] && <p className="text-xs font-mono text-blue-400" style={{ fontFamily: "'JetBrains Mono', monospace" }}>Agent: {payload[1]?.value?.toExponential(4)}</p>}
       </div>
     );
   }
@@ -101,7 +110,7 @@ const BellCurve: React.FC<BellCurveProps> = ({ mu, sigma, prediction, agentMu, a
           <YAxis hide />
           <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#E31837", strokeWidth: 1, strokeDasharray: "4 4" }} />
           
-          {/* Human Density */}
+          {/* Human Density - Spring Animation */}
           <Area 
             type="monotone" 
             dataKey="y" 
@@ -109,10 +118,11 @@ const BellCurve: React.FC<BellCurveProps> = ({ mu, sigma, prediction, agentMu, a
             strokeWidth={3} 
             fill="url(#bellFill)" 
             animationDuration={1200}
+            animationEasing="ease-out"
             style={{ filter: "url(#glow)" }}
           />
 
-          {/* Agent Density */}
+          {/* Agent Density - Dashed with spring */}
           {agentMu && (
             <Area 
               type="monotone" 
@@ -122,33 +132,61 @@ const BellCurve: React.FC<BellCurveProps> = ({ mu, sigma, prediction, agentMu, a
               strokeDasharray="5 5"
               fill="url(#agentFill)" 
               animationDuration={1500}
+              animationEasing="ease-out"
             />
           )}
 
+          {/* Human μ Reference Line */}
           <ReferenceLine 
             x={mu} 
             stroke="#E31837" 
             strokeWidth={1.5}
             strokeDasharray="5 5" 
-            label={{ position: "top", value: "HUMAN μ", fill: "#E31837", fontSize: 8, fontWeight: 800, letterSpacing: "0.1em" }} 
+            label={{ 
+              position: "top", 
+              value: "HUMAN μ", 
+              fill: "#E31837", 
+              fontSize: 8, 
+              fontWeight: 800, 
+              letterSpacing: "0.1em",
+              fontFamily: "Sora, sans-serif"
+            }} 
           />
 
+          {/* Agent μ Reference Line */}
           {agentMu && (
             <ReferenceLine 
               x={agentMu} 
               stroke="#3B82F6" 
               strokeWidth={1.5}
               strokeDasharray="5 5" 
-              label={{ position: "bottom", value: "AGENT μ", fill: "#3B82F6", fontSize: 8, fontWeight: 800, letterSpacing: "0.1em" }} 
+              label={{ 
+                position: "bottom", 
+                value: "AGENT μ", 
+                fill: "#3B82F6", 
+                fontSize: 8, 
+                fontWeight: 800, 
+                letterSpacing: "0.1em",
+                fontFamily: "Sora, sans-serif"
+              }} 
             />
           )}
 
+          {/* Prediction Point */}
           {prediction !== undefined && (
             <ReferenceLine 
               x={prediction} 
               stroke="#22C55E" 
-              strokeWidth={2} 
-              label={{ position: "top", value: "YOUR BET", fill: "#22C55E", fontSize: 9, fontWeight: 800, letterSpacing: "0.1em" }} 
+              strokeWidth={2}
+              label={{ 
+                position: "top", 
+                value: "YOUR BET", 
+                fill: "#22C55E", 
+                fontSize: 9, 
+                fontWeight: 800, 
+                letterSpacing: "0.1em",
+                fontFamily: "Sora, sans-serif"
+              }} 
             />
           )}
         </AreaChart>
