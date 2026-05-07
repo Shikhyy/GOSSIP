@@ -251,6 +251,67 @@ pub mod gossip {
         Ok(())
     }
 
+    /// Place a new position (supports multiple positions per user per market)
+    pub fn place_position(
+        ctx: Context<PlacePosition>,
+        position_id: u64,
+        point: f64,
+        amount: u64,
+    ) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+        let position = &mut ctx.accounts.position;
+        
+        // Validation checks
+        require!(!market.paused, GossipError::MarketPaused);
+        require!(market.sigma > 0.0, GossipError::InvalidParams);
+        require!(market.ends_at > Clock::get()?.unix_timestamp, GossipError::MarketEnded);
+        require!(
+            (point - market.mu).abs() <= 5.0 * market.sigma,
+            GossipError::PointTooFar
+        );
+
+        // Transfer tokens from user to vault
+        let cpi_accounts = Transfer {
+            from: ctx.accounts.user_token_account.to_account_info(),
+            to: ctx.accounts.vault.to_account_info(),
+            authority: ctx.accounts.user.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new(cpi_program, cpi_accounts);
+        token::transfer(cpi_ctx, amount)?;
+
+        let weight = (amount as f64) / (market.b + 1.0);
+        let old_mu = market.mu;
+        
+        // Tilt the market curve
+        market.mu = old_mu + weight * (point - old_mu) / (market.sigma.powi(2) + 0.1);
+        market.total_liquidity += amount;
+
+        // Create new position
+        position.id = position_id;
+        position.owner = ctx.accounts.user.key();
+        position.market = market.key();
+        position.point = point;
+        position.amount = amount;
+        position.initial_mu = old_mu;
+        position.initial_sigma = market.sigma;
+        position.created_at = Clock::get()?.unix_timestamp;
+        position.settled = false;
+        position.payout = 0;
+
+        emit!(PredictionPlaced {
+            market: market.key(),
+            position: position.key(),
+            owner: position.owner,
+            point: position.point,
+            amount: position.amount,
+            new_mu: market.mu,
+        });
+
+        msg!("Position {} created at {} with amount {}. New mu: {}", position_id, point, amount, market.mu);
+        Ok(())
+    }
+
     /// Update market parameters (oracle only)
     pub fn update_market(ctx: Context<UpdateMarket>, new_mu: f64, new_sigma: f64) -> Result<()> {
         let market = &mut ctx.accounts.market;
@@ -350,6 +411,38 @@ pub struct PlacePrediction<'info> {
 }
 
 #[derive(Accounts)]
+#[instruction(position_id: u64)]
+pub struct PlacePosition<'info> {
+    #[account(mut)]
+    pub market: Account<'info, Market>,
+
+    #[account(
+        init,
+        payer = user,
+        space = 8 + 8 + 32 + 32 + 8 + 8 + 8 + 8 + 8 + 1 + 8,
+        seeds = [b"position", market.key().as_ref(), user.key().as_ref(), position_id.to_le_bytes().as_ref()],
+        bump
+    )]
+    pub position: Account<'info, Prediction>,
+
+    #[account(mut)]
+    pub user: Signer<'info>,
+
+    #[account(mut)]
+    pub user_token_account: Account<'info, TokenAccount>,
+
+    #[account(
+        mut,
+        seeds = [b"vault", market.title.as_bytes()],
+        bump = market.vault_bump,
+    )]
+    pub vault: Account<'info, TokenAccount>,
+
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
 pub struct ResolveMarket<'info> {
     #[account(mut, has_one = oracle_authority)]
     pub market: Account<'info, Market>,
@@ -419,6 +512,13 @@ pub struct Prediction {
     pub created_at: i64,
     pub settled: bool,
     pub payout: u64,
+}
+
+#[account]
+pub struct MarketPositionsIndex {
+    pub market: Pubkey,
+    pub owner: Pubkey,
+    pub position_count: u32,
 }
 
 #[error_code]
