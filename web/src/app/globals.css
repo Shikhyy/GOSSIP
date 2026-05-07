@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Sora:wght@100..800&display=swap');
 
 @custom-variant dark (&:is(.dark *));
 
@@ -27,27 +28,31 @@
 :root {
   --background: #07111f;
   --foreground: #eef4ff;
-  --primary: #19c37d;
-  --primary-foreground: #04110c;
+  --primary: #E31837;
+  --primary-hover: #FF3B54;
+  --primary-muted: rgba(227, 24, 55, 0.15);
+  --primary-foreground: #ffffff;
   --secondary: #12233a;
   --secondary-foreground: #eef4ff;
-  --accent: #4da3ff;
+  --accent: #3B82F6;
+  --accent-muted: rgba(59, 130, 246, 0.15);
   --accent-foreground: #eef4ff;
   --muted: #0d1a2b;
   --muted-foreground: #9cb0ca;
   --border: rgba(124, 151, 185, 0.18);
   --input: rgba(124, 151, 185, 0.12);
-  --ring: rgba(77, 163, 255, 0.55);
-  --card: rgba(8, 16, 29, 0.86);
+  --ring: rgba(227, 24, 55, 0.55);
+  --card: rgba(9, 21, 35, 0.86);
   --card-foreground: #eef4ff;
   --popover: rgba(8, 16, 29, 0.96);
   --popover-foreground: #eef4ff;
-  --success: #19c37d;
+  --success: #19C37D;
   --warning: #ffb547;
-  --danger: #ff5f6d;
+  --danger: #FF5F6D;
   --info: #4da3ff;
-  --font-sans: "Inter", "SF Pro Text", "Segoe UI", sans-serif;
-  --font-mono: "SFMono-Regular", "SF Mono", "Menlo", monospace;
+  --font-sans: 'DM Sans', "Inter", "SF Pro Text", "Segoe UI", sans-serif;
+  --font-heading: 'Sora', sans-serif;
+  --font-mono: 'JetBrains Mono', "SFMono-Regular", "SF Mono", "Menlo", monospace;
   --radius: 0.85rem;
 }
 
@@ -245,4 +250,137 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(124, 151, 185, 0.36);
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-heading);
+}
+
+/* Enhanced Glassmorphism */
+.glass-panel {
+  background: rgba(9, 21, 35, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-hover:hover {
+  background: rgba(9, 21, 35, 0.85);
+  border-color: rgba(255, 255, 255, 0.12);
+  transform: translateY(-2px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* Grid Background */
+.grid-bg {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Enhanced Trading Button */
+.trading-button-primary {
+  background: linear-gradient(135deg, #E31837, #FF3B54);
+  color: white;
+  box-shadow: 0 8px 24px rgba(227, 24, 55, 0.35);
+}
+
+.trading-button-primary:hover {
+  background: linear-gradient(135deg, #FF3B54, #E31837);
+  box-shadow: 0 12px 32px rgba(227, 24, 55, 0.5);
+  transform: translateY(-2px);
+}
+
+.trading-button-primary:active {
+  transform: scale(0.98);
+}
+
+/* Animations */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    box-shadow: 0 0 20px rgba(227, 24, 55, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 40px rgba(227, 24, 55, 0.5);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in-up 0.5s ease-out forwards;
+}
+
+.animate-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Stagger animation delays */
+.delay-100 { animation-delay: 100ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+
+/* Number display - for prices and data */
+.number-display {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Positive/Negative indicators */
+.text-up {
+  color: #19C37D;
+}
+
+.text-down {
+  color: #FF5F6D;
+}
+
+/* Focus states */
+input:focus, button:focus, a:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: rgba(227, 24, 55, 0.4);
+}
+
+/* Card hover lift */
+.card-lift {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.25);
 }
