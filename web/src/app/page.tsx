@@ -10,6 +10,7 @@ import {
   CircleDollarSign,
   Clock3,
   Layers3,
+  Link2,
   ShieldCheck,
   Sparkles,
   TrendingUp,
@@ -21,11 +22,14 @@ import {
   liveAgentActivity,
   markets,
 } from "@/lib/demo-data";
+import { useMarketsWithFallback } from "@/hooks/useMarketsWithFallback";
 
 const featuredMarkets = markets.filter((market) => market.featured).slice(0, 2);
 const watchlistMarkets = markets.slice(0, 4);
 
 export default function Home() {
+  const { markets: liveMarkets, isOnChain, loading } = useMarketsWithFallback();
+  
   return (
     <div className="px-4 pb-10">
       <div className="mx-auto max-w-7xl space-y-6">
@@ -34,17 +38,25 @@ export default function Home() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.45 }}
-            className="surface-strong grid-panel rounded-[28px] p-6 sm:p-8"
+            className="surface-strong rounded-[28px] p-6 sm:p-8"
+            style={{ background: 'linear-gradient(135deg, #091523 0%, rgba(17, 24, 39, 0.8) 100%)', border: '1px solid rgba(255,255,255,0.06)' }}
           >
             <div className="flex flex-wrap items-center gap-3">
-              <span className="pill pill-positive">
+              <span className={`pill ${isOnChain ? 'pill-positive' : ''}`}>
                 <Sparkles className="h-3.5 w-3.5" />
-                Live trading environment
+                {isOnChain ? 'Live on-chain data' : 'Demo environment'}
               </span>
-              <span className="pill">
-                <Bot className="h-3.5 w-3.5 text-[#4da3ff]" />
-                47 agents active
-              </span>
+              {isOnChain ? (
+                <span className="pill" style={{ borderColor: 'rgba(59, 130, 246, 0.25)', color: '#8bf0c0', background: 'rgba(59, 130, 246, 0.08)' }}>
+                  <Link2 className="h-3.5 w-3.5 text-[#3B82F6]" />
+                  {liveMarkets.length} markets on-chain
+                </span>
+              ) : (
+                <span className="pill">
+                  <Bot className="h-3.5 w-3.5 text-[#4da3ff]" />
+                  {agentLeaderboard.length} agents active
+                </span>
+              )}
             </div>
 
             <div className="mt-6 max-w-3xl">
