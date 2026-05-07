@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useRef, useState, ReactNode } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { CheckCircle2, XCircle, AlertCircle, X } from "lucide-react";
+import { CheckCircle2, XCircle, AlertCircle, X, ExternalLink } from "lucide-react";
 
 type ToastType = "success" | "error" | "info";
 
@@ -10,11 +10,11 @@ interface Toast {
   id: string;
   type: ToastType;
   message: string;
-  txLink?: string;
+  txSignature?: string;
 }
 
 interface ToastContextType {
-  showToast: (type: ToastType, message: string, txLink?: string) => void;
+  showToast: (type: ToastType, message: string, txSignature?: string) => void;
 }
 
 const ToastContext = createContext<ToastContextType | null>(null);
@@ -29,57 +29,73 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const nextToastId = useRef(0);
 
-  const showToast = (type: ToastType, message: string, txLink?: string) => {
+  const showToast = (type: ToastType, message: string, txSignature?: string) => {
     nextToastId.current += 1;
     const id = `toast-${nextToastId.current}`;
-    setToasts((prev) => [...prev, { id, type, message, txLink }]);
-    setTimeout(() => removeToast(id), 5000);
+    setToasts((prev) => [...prev, { id, type, message, txSignature }]);
+    setTimeout(() => removeToast(id), 6000);
   };
 
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
-  const icons = {
-    success: <CheckCircle2 className="w-5 h-5 text-green-500" />,
-    error: <XCircle className="w-5 h-5 text-red-500" />,
-    info: <AlertCircle className="w-5 h-5 text-yellow-500" />,
+  const colors = {
+    success: { icon: "#19C37D", border: "rgba(25, 195, 125, 0.3)", bg: "rgba(25, 195, 125, 0.08)" },
+    error: { icon: "#FF5F6D", border: "rgba(255, 95, 109, 0.3)", bg: "rgba(255, 95, 109, 0.08)" },
+    info: { icon: "#4da3ff", border: "rgba(77, 163, 255, 0.3)", bg: "rgba(77, 163, 255, 0.08)" },
   };
+
+  const icons = {
+    success: <CheckCircle2 className="w-5 h-5" style={{ color: colors.success.icon }} />,
+    error: <XCircle className="w-5 h-5" style={{ color: colors.error.icon }} />,
+    info: <AlertCircle className="w-5 h-5" style={{ color: colors.info.icon }} />,
+  };
+
+  const getSolscanLink = (signature: string) => 
+    `https://solscan.io/tx/${signature}?cluster=devnet`;
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-20 right-4 z-[100] space-y-2">
+      <div className="fixed bottom-6 right-6 z-[100] space-y-3">
         <AnimatePresence>
-          {toasts.map((toast) => (
-            <motion.div
-              key={toast.id}
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 50 }}
-              className="flex items-center gap-3 px-4 py-3 min-w-[300px]"
-              style={{
-                background: "#1A0808",
-                border: "1px solid rgba(227,24,55,0.2)",
-              }}
-            >
-              {icons[toast.type]}
-              <span className="flex-1 text-sm text-white">{toast.message}</span>
-              {toast.txLink && (
-                <a
-                  href={toast.txLink}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs text-[#E31837] hover:underline"
+          {toasts.map((toast) => {
+            const style = colors[toast.type];
+            return (
+              <motion.div
+                key={toast.id}
+                initial={{ opacity: 0, x: 100, scale: 0.9 }}
+                animate={{ opacity: 1, x: 0, scale: 1 }}
+                exit={{ opacity: 0, x: 100, scale: 0.9 }}
+                className="glass-panel px-4 py-3 flex items-start gap-3 min-w-[320px] max-w-[400px]"
+                style={{ borderLeft: `3px solid ${style.icon}` }}
+              >
+                {icons[toast.type]}
+                <div className="flex-1">
+                  <p className="text-sm text-white font-medium" style={{ fontFamily: "'DM Sans', sans-serif" }}>{toast.message}</p>
+                  {toast.txSignature && (
+                    <a
+                      href={getSolscanLink(toast.txSignature)}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-xs flex items-center gap-1 mt-2 hover:underline"
+                      style={{ color: style.icon, fontFamily: "'JetBrains Mono', monospace" }}
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      View transaction
+                    </a>
+                  )}
+                </div>
+                <button 
+                  onClick={() => removeToast(toast.id)} 
+                  className="text-[#6B7280] hover:text-white transition-colors"
                 >
-                  View
-                </a>
-              )}
-              <button onClick={() => removeToast(toast.id)} className="text-white/50 hover:text-white">
-                <X className="w-4 h-4" />
-              </button>
-            </motion.div>
-          ))}
+                  <X className="w-4 h-4" />
+                </button>
+              </motion.div>
+            );
+          })}
         </AnimatePresence>
       </div>
     </ToastContext.Provider>
