@@ -23,12 +23,16 @@ export default function Navbar() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4">
         <div className="flex items-center gap-6">
           <Link href="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-[#4da3ff]/20 bg-[#0d1a2b] shadow-[0_8px_24px_rgba(0,0,0,0.2)]">
-              <BarChart3 className="h-4.5 w-4.5 text-[#4da3ff]" />
-            </div>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-[#E31837] to-[#FF3B54] shadow-[0_8px_24px_rgba(227,24,55,0.3)]"
+            >
+              <span className="text-white font-bold text-lg" style={{ fontFamily: "Sora, sans-serif" }}>G</span>
+            </motion.div>
             <div>
-              <p className="text-sm font-semibold text-white">GOSSIP Markets</p>
-              <p className="text-[11px] text-[#8fa4c2]">Continuous prediction trading</p>
+              <p className="text-sm font-semibold text-white" style={{ fontFamily: "Sora, sans-serif" }}>GOSSIP</p>
+              <p className="text-[11px] text-[#8fa4c2]">Continuous prediction markets</p>
             </div>
           </Link>
 
@@ -39,11 +43,19 @@ export default function Navbar() {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
-                    active ? "bg-white/7 text-white" : "text-[#9cb0ca] hover:text-white"
+                  className={`relative rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                    active ? "text-white" : "text-[#9cb0ca] hover:text-white"
                   }`}
+                  style={{ fontFamily: "DM Sans, sans-serif" }}
                 >
                   {item.label}
+                  {active && (
+                    <motion.div
+                      layoutId="navbar-indicator"
+                      className="absolute bottom-0 left-2 right-2 h-0.5 rounded-full bg-[#E31837]"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                    />
+                  )}
                 </Link>
               );
             })}
