@@ -1,3 +1,7 @@
-click
-solana
-anchorpy
+click>=8.1.0
+solana>=0.30.0
+anchorpy>=0.2.0
+requests>=2.31.0
+python-dotenv>=1.0.0
+numpy>=1.24.0
+pandas>=2.0.0
