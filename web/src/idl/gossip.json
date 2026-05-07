@@ -117,8 +117,43 @@
         {
           "name": "ends_at",
           "type": "i64"
+        },
+        {
+          "name": "oracle_authority",
+          "type": "pubkey"
+        },
+        {
+          "name": "fee_bps",
+          "type": "u16"
         }
       ]
+    },
+    {
+      "name": "pause_market",
+      "discriminator": [
+        216,
+        238,
+        4,
+        164,
+        65,
+        11,
+        162,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": []
     },
     {
       "name": "place_prediction",
@@ -252,7 +287,7 @@
           "writable": true
         },
         {
-          "name": "authority",
+          "name": "oracle_authority",
           "signer": true,
           "relations": [
             "market"
@@ -332,6 +367,33 @@
       "args": []
     },
     {
+      "name": "unpause_market",
+      "discriminator": [
+        219,
+        203,
+        199,
+        170,
+        212,
+        45,
+        170,
+        80
+      ],
+      "accounts": [
+        {
+          "name": "market",
+          "writable": true
+        },
+        {
+          "name": "authority",
+          "signer": true,
+          "relations": [
+            "market"
+          ]
+        }
+      ],
+      "args": []
+    },
+    {
       "name": "update_market",
       "docs": [
         "Update market parameters (oracle only)"
@@ -399,6 +461,60 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "MarketCreated",
+      "discriminator": [
+        88,
+        184,
+        130,
+        231,
+        226,
+        84,
+        6,
+        58
+      ]
+    },
+    {
+      "name": "MarketResolved",
+      "discriminator": [
+        89,
+        67,
+        230,
+        95,
+        143,
+        106,
+        199,
+        202
+      ]
+    },
+    {
+      "name": "PositionSettled",
+      "discriminator": [
+        75,
+        100,
+        92,
+        189,
+        245,
+        116,
+        252,
+        221
+      ]
+    },
+    {
+      "name": "PredictionPlaced",
+      "discriminator": [
+        230,
+        40,
+        242,
+        26,
+        50,
+        92,
+        158,
+        221
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
@@ -424,6 +540,36 @@
       "code": 6004,
       "name": "InvalidParams",
       "msg": "Invalid market parameters"
+    },
+    {
+      "code": 6005,
+      "name": "ResolutionTooEarly",
+      "msg": "Resolution attempted too early (15min cooldown)"
+    },
+    {
+      "code": 6006,
+      "name": "UnauthorizedOracle",
+      "msg": "Oracle authority not authorized to resolve"
+    },
+    {
+      "code": 6007,
+      "name": "PointTooFar",
+      "msg": "Prediction point too far from market consensus"
+    },
+    {
+      "code": 6008,
+      "name": "MarketPaused",
+      "msg": "Market is paused for trading"
+    },
+    {
+      "code": 6009,
+      "name": "MarketEnded",
+      "msg": "Market has ended"
+    },
+    {
+      "code": 6010,
+      "name": "PositionNotFound",
+      "msg": "Position index not found"
     }
   ],
   "types": [
@@ -487,6 +633,94 @@
           {
             "name": "vault_bump",
             "type": "u8"
+          },
+          {
+            "name": "oracle_authority",
+            "type": "pubkey"
+          },
+          {
+            "name": "fee_bps",
+            "type": "u16"
+          },
+          {
+            "name": "paused",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketCreated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "creator",
+            "type": "pubkey"
+          },
+          {
+            "name": "title",
+            "type": "string"
+          },
+          {
+            "name": "category",
+            "type": "string"
+          },
+          {
+            "name": "mu",
+            "type": "f64"
+          },
+          {
+            "name": "sigma",
+            "type": "f64"
+          },
+          {
+            "name": "ends_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "MarketResolved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "final_outcome",
+            "type": "f64"
+          },
+          {
+            "name": "resolved_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionSettled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "payout",
+            "type": "u64"
           }
         ]
       }
@@ -535,6 +769,38 @@
           {
             "name": "payout",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PredictionPlaced",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "market",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "point",
+            "type": "f64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_mu",
+            "type": "f64"
           }
         ]
       }
