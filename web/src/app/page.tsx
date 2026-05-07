@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -11,24 +12,114 @@ import {
   Clock3,
   Layers3,
   Link2,
+  RefreshCw,
   ShieldCheck,
   Sparkles,
   TrendingUp,
 } from "lucide-react";
-import {
-  agentLeaderboard,
-  formatCompactCurrency,
-  formatPercent,
-  liveAgentActivity,
-  markets,
-} from "@/lib/demo-data";
-import { useMarketsWithFallback } from "@/hooks/useMarketsWithFallback";
+import { useSolanaMarkets } from "@/hooks/useSolanaMarkets";
+import { connection } from "@/lib/solana-data";
 
-const featuredMarkets = markets.filter((market) => market.featured).slice(0, 2);
-const watchlistMarkets = markets.slice(0, 4);
+function formatCompactCurrency(value: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
+}
+
+function formatPercent(value: number, digits = 1) {
+  const sign = value >= 0 ? "+" : "";
+  return `${sign}${value.toFixed(digits)}%`;
+}
 
 export default function Home() {
-  const { markets: liveMarkets, isOnChain, loading } = useMarketsWithFallback();
+  const { markets, loading, isOnChain, refetch } = useSolanaMarkets();
+  const [agentLeaderboard, setAgentLeaderboard] = useState<any[]>([]);
+  const [liveAgentActivity, setLiveAgentActivity] = useState<any[]>([]);
+  
+  // Generate dynamic agent data
+  useEffect(() => {
+    const now = Date.now();
+    setAgentLeaderboard([
+      {
+        id: "alpha-oracle",
+        name: "AlphaOracle v3",
+        strategy: "Event-driven cross-market arbitrage",
+        pnl: 34.2 + Math.sin(now / 100000) * 5,
+        accuracy: 78.4,
+        status: "active",
+        markets: 18,
+        dailyVolume: 214000,
+        summary: "Leans into macro catalysts and reprices thin tails fast.",
+      },
+      {
+        id: "sigma-flow",
+        name: "SigmaFlow",
+        strategy: "Volatility harvesting",
+        pnl: 21.6 + Math.cos(now / 100000) * 3,
+        accuracy: 71.2,
+        status: "active",
+        markets: 14,
+        dailyVolume: 168000,
+        summary: "Runs tighter entry bands and prefers liquid weekly contracts.",
+      },
+      {
+        id: "black-swan",
+        name: "BlackSwan Hunter",
+        strategy: "Tail-risk discovery",
+        pnl: 18.9 + Math.sin(now / 150000) * 4,
+        accuracy: 65.8,
+        status: "active",
+        markets: 9,
+        dailyVolume: 92000,
+        summary: "Small size, extreme convexity, excellent during narrative breaks.",
+      },
+      {
+        id: "consensus-breaker",
+        name: "ConsensusBreaker",
+        strategy: "Crowd disagreement scanner",
+        pnl: 15.4,
+        accuracy: 62.1,
+        status: "cooldown",
+        markets: 12,
+        dailyVolume: 88000,
+        summary: "Looks for retail/agent divergence and fades crowded positioning.",
+      },
+    ]);
+    
+    setLiveAgentActivity([
+      {
+        agent: "AlphaOracle v3",
+        market: "SOL price at Friday close",
+        action: `Added ${Math.floor(Math.random() * 20) + 10} CASH to upside tail`,
+        confidence: Math.floor(75 + Math.random() * 20),
+        timestamp: "2m ago",
+      },
+      {
+        agent: "SigmaFlow",
+        market: "Fed funds target after next decision",
+        action: "Reduced long vol as implied range compressed",
+        confidence: Math.floor(65 + Math.random() * 15),
+        timestamp: "6m ago",
+      },
+      {
+        agent: "BlackSwan Hunter",
+        market: "GPT-5.5 MMLU score",
+        action: "Opened contrarian position in the cold tail",
+        confidence: Math.floor(70 + Math.random() * 15),
+        timestamp: "11m ago",
+      },
+    ]);
+  }, []);
+
+  const featuredMarkets = markets.filter((market) => market.featured).slice(0, 2);
+  const watchlistMarkets = markets.slice(0, 4);
+  
+  // Calculate dynamic stats
+  const totalVolume = markets.reduce((sum, m) => sum + m.volume24h, 0);
+  const totalLiquidity = markets.reduce((sum, m) => sum + m.liquidity, 0);
   
   return (
     <div className="px-4 pb-10">
@@ -49,7 +140,7 @@ export default function Home() {
               {isOnChain ? (
                 <span className="pill" style={{ borderColor: 'rgba(59, 130, 246, 0.25)', color: '#8bf0c0', background: 'rgba(59, 130, 246, 0.08)' }}>
                   <Link2 className="h-3.5 w-3.5 text-[#3B82F6]" />
-                  {liveMarkets.length} markets on-chain
+                  {markets.length} markets on-chain
                 </span>
               ) : (
                 <span className="pill">
@@ -83,25 +174,32 @@ export default function Home() {
               {[
                 {
                   label: "24h volume",
-                  value: formatCompactCurrency(2400000),
-                  detail: formatPercent(12.1),
-                  positive: true,
+                  value: formatCompactCurrency(totalVolume),
+                  detail: formatPercent(markets[0]?.change24h || 0),
+                  positive: (markets[0]?.change24h || 0) >= 0,
                 },
                 {
                   label: "Open liquidity",
-                  value: formatCompactCurrency(561000),
-                  detail: "Across 18 contracts",
+                  value: formatCompactCurrency(totalLiquidity),
+                  detail: `Across ${markets.length} contracts`,
                 },
                 {
                   label: "Resolved today",
-                  value: "14",
+                  value: markets.filter(m => m.status === 'resolving').length.toString(),
                   detail: "Median slippage 0.7%",
                 },
               ].map((item) => (
-                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/4 p-4">
+                <div 
+                  key={item.label} 
+                  className="rounded-2xl border border-white/8 bg-white/4 p-4"
+                >
                   <p className="metric-label">{item.label}</p>
-                  <p className="mt-2 text-2xl font-semibold text-white">{item.value}</p>
-                  <p className={`mt-2 text-sm ${item.positive ? "text-[#19c37d]" : "text-[#8fa4c2]"}`}>{item.detail}</p>
+                  <p className="mt-2 text-2xl font-semibold text-white" style={{ fontFamily: "'JetBrains Mono', monospace" }}>
+                    {item.value}
+                  </p>
+                  <p className={`mt-2 text-sm ${item.positive ? "text-[#19c37d]" : "text-[#8fa4c2]"}`}>
+                    {item.detail}
+                  </p>
                 </div>
               ))}
             </div>
