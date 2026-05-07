@@ -3,6 +3,41 @@ use anchor_spl::token::{self, Token, TokenAccount, Transfer, Mint};
 
 declare_id!("9XhqEsnBFSLB1trNuq57wJjMtFyrPvcHUT2xQiFSbNKi");
 
+#[event]
+pub struct MarketCreated {
+    pub market: Pubkey,
+    pub creator: Pubkey,
+    pub title: String,
+    pub category: String,
+    pub mu: f64,
+    pub sigma: f64,
+    pub ends_at: i64,
+}
+
+#[event]
+pub struct PredictionPlaced {
+    pub market: Pubkey,
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub point: f64,
+    pub amount: u64,
+    pub new_mu: f64,
+}
+
+#[event]
+pub struct MarketResolved {
+    pub market: Pubkey,
+    pub final_outcome: f64,
+    pub resolved_at: i64,
+}
+
+#[event]
+pub struct PositionSettled {
+    pub position: Pubkey,
+    pub owner: Pubkey,
+    pub payout: u64,
+}
+
 #[program]
 pub mod gossip {
     use super::*;
@@ -17,6 +52,8 @@ pub mod gossip {
         b: f64,
         resolution_source: String,
         ends_at: i64,
+        oracle_authority: Pubkey,
+        fee_bps: u16,
     ) -> Result<()> {
         let market = &mut ctx.accounts.market;
         market.authority = ctx.accounts.authority.key();
@@ -33,6 +70,19 @@ pub mod gossip {
         market.ends_at = ends_at;
         market.mint = ctx.accounts.mint.key();
         market.vault_bump = ctx.bumps.vault;
+        market.oracle_authority = oracle_authority;
+        market.fee_bps = fee_bps;
+        market.paused = false;
+
+        emit!(MarketCreated {
+            market: market.key(),
+            creator: market.creator,
+            title: market.title.clone(),
+            category: market.category.clone(),
+            mu: market.mu,
+            sigma: market.sigma,
+            ends_at: market.ends_at,
+        });
 
         msg!("Market Created: {} with mu: {}, sigma: {}", market.title, market.mu, market.sigma);
         Ok(())
@@ -47,6 +97,18 @@ pub mod gossip {
     ) -> Result<()> {
         let market = &mut ctx.accounts.market;
         let prediction = &mut ctx.accounts.prediction;
+
+        // Validation checks
+        require!(!market.paused, GossipError::MarketPaused);
+        require!(market.sigma > 0.0, GossipError::InvalidParams);
+        require!(market.b > 0.0, GossipError::InvalidParams);
+        require!(market.ends_at > Clock::get()?.unix_timestamp, GossipError::MarketEnded);
+
+        // Point must be within 5 sigma of current mu
+        require!(
+            (point - market.mu).abs() <= 5.0 * market.sigma,
+            GossipError::PointTooFar
+        );
 
         // Transfer tokens from user to vault
         let cpi_accounts = Transfer {
@@ -76,6 +138,15 @@ pub mod gossip {
         prediction.settled = false;
         prediction.payout = 0;
 
+        emit!(PredictionPlaced {
+            market: market.key(),
+            position: prediction.key(),
+            owner: prediction.owner,
+            point: prediction.point,
+            amount: prediction.amount,
+            new_mu: market.mu,
+        });
+
         msg!("Prediction placed at {} with amount {}. New mu: {}", point, amount, market.mu);
         Ok(())
     }
@@ -87,9 +158,27 @@ pub mod gossip {
     ) -> Result<()> {
         let market = &mut ctx.accounts.market;
         require!(!market.resolved, GossipError::AlreadyResolved);
-        
+
+        // 15-minute cooldown after market ends
+        require!(
+            Clock::get()?.unix_timestamp >= market.ends_at + 900,
+            GossipError::ResolutionTooEarly
+        );
+
+        // Only oracle authority can resolve
+        require!(
+            ctx.accounts.oracle_authority.key() == market.oracle_authority,
+            GossipError::UnauthorizedOracle
+        );
+
         market.resolved = true;
         market.final_outcome = final_outcome;
+
+        emit!(MarketResolved {
+            market: market.key(),
+            final_outcome: market.final_outcome,
+            resolved_at: Clock::get()?.unix_timestamp,
+        });
 
         msg!("Market Resolved: {} with final outcome: {}", market.title, final_outcome);
         Ok(())
@@ -103,20 +192,42 @@ pub mod gossip {
         require!(market.resolved, GossipError::NotResolved);
         require!(!prediction.settled, GossipError::AlreadySettled);
 
-        // Density calculation for continuous payout
-        let z_score = (market.final_outcome - prediction.point) / prediction.initial_sigma;
-        let density = (1.0 / (prediction.initial_sigma * (2.0 * std::f64::consts::PI).sqrt()))
-            * (-0.5 * z_score.powi(2)).exp();
-        
-        // payout logic: amount * density * scale
-        // Scaling factor to make payouts meaningful
-        let multiplier = density * 100.0; 
+        // Quadratic payoff calculation
+        let deviation = (market.final_outcome - prediction.point).abs();
+        let k = 1.5; // Scaling factor for quadratic curve
+        let max_deviation = k * prediction.initial_sigma;
+
+        // Payoff ratio: 1.0 when exact, 0.0 when at max_deviation
+        let payoff_ratio = if deviation >= max_deviation {
+            0.0
+        } else {
+            1.0 - (deviation.powi(2) / max_deviation.powi(2))
+        };
+
+        // Payout: stake * (1 + payoff_ratio * multiplier)
+        // Multiplier of 10x means max payout = 11x stake
+        let multiplier = if payoff_ratio > 0.0 {
+            1.0 + payoff_ratio * 10.0
+        } else {
+            0.0
+        };
+
         let payout = (prediction.amount as f64 * multiplier) as u64;
-        
-        prediction.payout = payout;
+
+        // Apply protocol fee (fee_bps from market)
+        let fee = (payout as f64 * market.fee_bps as f64 / 10000.0) as u64;
+        let payout_after_fee = payout - fee;
+
+        prediction.payout = payout_after_fee;
         prediction.settled = true;
 
-        if payout > 0 {
+        emit!(PositionSettled {
+            position: prediction.key(),
+            owner: prediction.owner,
+            payout: payout_after_fee,
+        });
+
+        if payout_after_fee > 0 {
             // Transfer winnings from vault to user
             let market_title = market.title.clone();
             let seeds = &[
@@ -133,10 +244,10 @@ pub mod gossip {
             };
             let cpi_program = ctx.accounts.token_program.to_account_info();
             let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
-            token::transfer(cpi_ctx, payout)?;
+            token::transfer(cpi_ctx, payout_after_fee)?;
         }
 
-        msg!("Settled position with payout: {}", payout);
+        msg!("Settled position with payout: {} (fee: {})", payout_after_fee, fee);
         Ok(())
     }
 
@@ -151,6 +262,28 @@ pub mod gossip {
         msg!("Updated market: mu={}, sigma={}", new_mu, new_sigma);
         Ok(())
     }
+
+    pub fn pause_market(ctx: Context<UpdateMarket>) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+        require!(
+            ctx.accounts.authority.key() == market.authority,
+            GossipError::UnauthorizedOracle
+        );
+        market.paused = true;
+        msg!("Market paused: {}", market.title);
+        Ok(())
+    }
+
+    pub fn unpause_market(ctx: Context<UpdateMarket>) -> Result<()> {
+        let market = &mut ctx.accounts.market;
+        require!(
+            ctx.accounts.authority.key() == market.authority,
+            GossipError::UnauthorizedOracle
+        );
+        market.paused = false;
+        msg!("Market unpaused: {}", market.title);
+        Ok(())
+    }
 }
 
 #[derive(Accounts)]
@@ -159,7 +292,7 @@ pub struct CreateMarket<'info> {
     #[account(
         init,
         payer = authority,
-        space = 8 + 32 + 32 + (4 + title.len()) + (4 + category.len()) + 8 + 8 + 8 + 8 + 1 + 8 + (4 + resolution_source.len()) + 8 + 32 + 1,
+        space = 8 + 32 + 32 + (4 + title.len()) + (4 + category.len()) + 8 + 8 + 8 + 8 + 1 + 8 + (4 + resolution_source.len()) + 8 + 32 + 1 + 32 + 2 + 1,
         seeds = [b"market", title.as_bytes()],
         bump
     )]
@@ -218,9 +351,9 @@ pub struct PlacePrediction<'info> {
 
 #[derive(Accounts)]
 pub struct ResolveMarket<'info> {
-    #[account(mut, has_one = authority)]
+    #[account(mut, has_one = oracle_authority)]
     pub market: Account<'info, Market>,
-    pub authority: Signer<'info>,
+    pub oracle_authority: Signer<'info>,
 }
 
 #[derive(Accounts)]
@@ -269,6 +402,9 @@ pub struct Market {
     pub ends_at: i64,
     pub mint: Pubkey,
     pub vault_bump: u8,
+    pub oracle_authority: Pubkey,
+    pub fee_bps: u16,
+    pub paused: bool,
 }
 
 #[account]
@@ -297,4 +433,16 @@ pub enum GossipError {
     PredictionNotFound,
     #[msg("Invalid market parameters")]
     InvalidParams,
+    #[msg("Resolution attempted too early (15min cooldown)")]
+    ResolutionTooEarly,
+    #[msg("Oracle authority not authorized to resolve")]
+    UnauthorizedOracle,
+    #[msg("Prediction point too far from market consensus")]
+    PointTooFar,
+    #[msg("Market is paused for trading")]
+    MarketPaused,
+    #[msg("Market has ended")]
+    MarketEnded,
+    #[msg("Position index not found")]
+    PositionNotFound,
 }
